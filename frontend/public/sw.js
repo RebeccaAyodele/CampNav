@@ -1,0 +1,154 @@
+/**
+ * Service Worker
+ *
+ * Purpose:
+ *   - Intercept network requests and serve cached responses
+ *   - Cache offline pages and assets
+ *   - Handle sync for queued submissions
+ *   - Manage offline state
+ *
+ * Strategy:
+ *   - Cache-first for static assets (CSS, JS, fonts)
+ *   - Network-first for API calls (with cache fallback)
+ *   - Stale-while-revalidate for HTML pages
+ */
+
+const CACHE_VERSION = "v1";
+const CACHE_NAME = `campnav-${CACHE_VERSION}`;
+
+const STATIC_ASSETS = [
+  "/",
+  "/offline",
+  "/app",
+  "/dashboard/login",
+  "/driver",
+  "/favicon.ico",
+];
+
+const RUNTIME_CACHE = "campnav-runtime";
+const API_CACHE = "campnav-api";
+
+// Install event - cache static assets
+self.addEventListener("install", (event) => {
+  console.log("Service Worker installing...");
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      console.log("Caching static assets");
+      return cache.addAll(STATIC_ASSETS);
+    })
+  );
+  self.skipWaiting();
+});
+
+// Activate event - clean up old caches
+self.addEventListener("activate", (event) => {
+  console.log("Service Worker activating...");
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (
+            cacheName !== CACHE_NAME &&
+            cacheName !== RUNTIME_CACHE &&
+            cacheName !== API_CACHE
+          ) {
+            console.log("Deleting old cache:", cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+  self.clients.claim();
+});
+
+// Fetch event - serve from cache, fallback to network
+self.addEventListener("fetch", (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Skip cross-origin requests
+  if (url.origin !== location.origin) {
+    return;
+  }
+
+  // Handle GET requests
+  if (request.method !== "GET") {
+    return;
+  }
+
+  // API requests - network-first
+  if (url.pathname.startsWith("/api/")) {
+    event.respondWith(networkFirstStrategy(request));
+    return;
+  }
+
+  // Static assets - cache-first
+  event.respondWith(cacheFirstStrategy(request));
+});
+
+/**
+ * Cache-first strategy: return cached response if available, otherwise fetch from network
+ */
+async function cacheFirstStrategy(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
+
+  if (cached) {
+    return cached;
+  }
+
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const responseToCache = response.clone();
+      cache.add(responseToCache);
+    }
+    return response;
+  } catch (error) {
+    console.error("Fetch failed:", error);
+    // Return offline page for navigation requests
+    if (request.mode === "navigate") {
+      return cache.match("/offline");
+    }
+    throw error;
+  }
+}
+
+/**
+ * Network-first strategy: try to fetch from network, fallback to cache
+ */
+async function networkFirstStrategy(request) {
+  const cache = await caches.open(API_CACHE);
+
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const responseToCache = response.clone();
+      cache.put(request, responseToCache);
+    }
+    return response;
+  } catch (error) {
+    const cached = await cache.match(request);
+    if (cached) {
+      return cached;
+    }
+    console.error("Network request failed:", error);
+    throw error;
+  }
+}
+
+// Background sync for offline form submissions
+self.addEventListener("sync", (event) => {
+  console.log("Background sync event:", event.tag);
+  // Sync logic will go here
+  // event.waitUntil(syncOfflineQueue());
+});
+
+// Push notifications
+self.addEventListener("push", (event) => {
+  console.log("Push event received");
+  // Push handling logic will go here
+});
+
+console.log("Service Worker loaded");

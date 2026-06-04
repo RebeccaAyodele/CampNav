@@ -1,6 +1,7 @@
 import type { RequestHandler } from "express";
 import jwt from "jsonwebtoken";
 import { config } from "../config/env.js";
+import { ErrorCodes } from "../constants/error-codes.js";
 import { sendError } from "../utils/api-response.js";
 
 export type AuthUser = {
@@ -20,7 +21,7 @@ export const requireAuth: RequestHandler = (req, res, next) => {
   const header = req.headers.authorization;
 
   if (!header?.startsWith("Bearer ")) {
-    sendError(res, "UNAUTHORIZED", "Missing bearer token", 401);
+    sendError(res, ErrorCodes.MissingBearerToken, "Missing bearer token", 401);
     return;
   }
 
@@ -28,6 +29,6 @@ export const requireAuth: RequestHandler = (req, res, next) => {
     req.user = jwt.verify(header.slice("Bearer ".length), config.jwtSecret) as AuthUser;
     next();
   } catch {
-    sendError(res, "UNAUTHORIZED", "Invalid bearer token", 401);
+    sendError(res, ErrorCodes.InvalidBearerToken, "Invalid bearer token", 401);
   }
 };

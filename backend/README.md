@@ -13,11 +13,34 @@ npm run dev
 
 The API runs on `http://localhost:3001` by default.
 
+## PostgreSQL
+
+Create a PostgreSQL database, then update `DATABASE_URL` in `.env`.
+
+```bash
+createdb campnav
+npm run db:migrate
+```
+
+The first migration creates:
+
+- `users`
+- `zones`
+- `pois`
+- `roads`
+- `shuttle_checkins`
+- `lost_person_reports`
+- `logs`
+- `schema_migrations`
+
+The initial schema intentionally uses plain PostgreSQL coordinates (`lat`, `lng`) and GeoJSON stored in `jsonb`, so local development does not require PostGIS to be installed on the database server. PostGIS can be added later when the deployment database supports it.
+
 ## Scripts
 
 - `npm run dev` - start the development server with watch mode.
 - `npm run build` - compile TypeScript to `dist/`.
 - `npm start` - run the compiled server.
+- `npm run db:migrate` - apply pending SQL migrations.
 - `npm run typecheck` - validate types without emitting files.
 - `npm run lint` - run ESLint over `src/`.
 

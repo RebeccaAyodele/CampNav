@@ -1,4 +1,5 @@
 import type { Response } from "express";
+import type { ErrorCode } from "../constants/error-codes.js";
 
 export function sendSuccess<T>(res: Response, data: T, statusCode = 200) {
   return res.status(statusCode).json({
@@ -7,7 +8,7 @@ export function sendSuccess<T>(res: Response, data: T, statusCode = 200) {
   });
 }
 
-export function sendError(res: Response, code: string, message: string, statusCode = 400) {
+export function sendError(res: Response, code: ErrorCode, message: string, statusCode = 400) {
   return res.status(statusCode).json({
     success: false,
     error: {

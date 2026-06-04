@@ -46,9 +46,9 @@ CampNav fixes that.
 | Frontend (visitor app + dashboard) | Next.js, TypeScript, MapLibre GL JS |
 | Camp map data | Custom GeoJSON (hand-traced from satellite imagery) |
 | Search | Fuse.js fuzzy matching |
-| Routing engine | Dijkstra over GeoJSON road network (Python / FastAPI) |
+| Routing engine | Dijkstra over GeoJSON road network (Express / TypeScript) |
 | USSD gateway | Africa's Talking API |
-| Dashboard backend | Node.js / Express |
+| Backend API | Node.js / Express / TypeScript |
 | Database | PostgreSQL with PostGIS |
 | i18n | next-i18next (static locale files, no live translation API) |
 | Hosting | Vercel (frontend) + Railway (backends) |
@@ -60,8 +60,7 @@ CampNav fixes that.
 ```
 campnav/
 ├── frontend/             Next.js visitor app and admin dashboard (PWA)
-├── backend-python/       FastAPI routing engine and USSD webhook (Temi)
-├── backend-node/         Express API for dashboard, check-ins, sync (Tolu)
+├── backend/              Express + TypeScript API for routing, USSD, dashboard, check-ins, sync
 ├── map-data/             GeoJSON files for Redemption City camp layout
 └── docs/                 Architecture diagrams and API contracts
 ```
@@ -83,18 +82,10 @@ pnpm install
 pnpm run dev
 ```
 
-### Backend (Python)
+### Backend
 
 ```bash
-cd backend-python
-pip install -r requirements.txt
-uvicorn main:app --reload
-```
-
-### Backend (Node.js)
-
-```bash
-cd backend-node
+cd backend
 npm install
 npm run dev
 ```
@@ -106,14 +97,13 @@ Copy `.env.example` to `.env` in each service directory and fill in the values.
 Required variables:
 
 ```
-# backend-python
+# backend
 DATABASE_URL=
+JWT_SECRET=
 AT_API_KEY=         # Africa's Talking API key
 AT_USERNAME=        # Africa's Talking username
-
-# backend-node
-DATABASE_URL=
-PYTHON_API_URL=     # URL of the running FastAPI service
+PORT=3001
+CORS_ORIGIN=http://localhost:3000
 ```
 
 ---
@@ -144,8 +134,8 @@ To update or extend the map, open the relevant GeoJSON file in [geojson.io](http
 | Name | Role |
 |---|---|
 | Becca | Frontend — visitor app, map rendering, NLP search, multilingual UI |
-| Temi | Backend — routing engine, USSD integration (Python) |
-| Tolu | Backend — dashboard, check-ins, logistics API (Node.js) |
+| Temi | Backend — routing engine, USSD integration (Express / TypeScript) |
+| Tolu | Backend — dashboard, check-ins, logistics API (Express / TypeScript) |
 
 ---
 

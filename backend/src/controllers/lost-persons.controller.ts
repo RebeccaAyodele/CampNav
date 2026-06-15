@@ -177,7 +177,7 @@ export const listLostPersonReports: RequestHandler = async (req, res) => {
     params.push(limitNum, offsetNum);
     const { rows: reports } = await pool.query(
       `SELECT report_id, description, status, last_known_location,
-              reporter_phone, source, created_at
+              photo_url, reporter_phone, source, created_at
        FROM lost_person_reports
        ${whereClause}
        ORDER BY created_at DESC

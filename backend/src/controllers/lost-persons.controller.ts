@@ -4,7 +4,7 @@ import { pool } from "../config/db.js";
 import { sendSuccess, sendError } from "../utils/api-response.js";
 
 // ─── Validation Schemas ───────────────────────────────────────────────────────
-// Kept Temi's field names exactly. We map to DB column names during the insert.
+
 
 const lostPersonSchema = z.object({
   name: z.string().min(1).optional(), // person's name if known
@@ -214,33 +214,69 @@ export const updateLostPersonStatus: RequestHandler = async (req, res) => {
   const { status, notes } = result.data;
 
   try {
-    // 2. Update the row — RETURNING confirms it existed
-    const { rowCount } = await pool.query(
-      `UPDATE lost_person_reports
-       SET status = $1, notes = $2, updated_at = $3
-       WHERE report_id = $4`,
-      [status, notes ?? null, new Date().toISOString(), id],
+    // 1. Fetch the current row first — we need photo_url before updating
+    const { rows: existing } = await pool.query<{ photo_url: string | null }>(
+      `SELECT photo_url FROM lost_person_reports WHERE report_id = $1`,
+      [id]
     );
 
-    // 3. If nothing was updated, the ID doesn't exist
+    if (existing.length === 0) {
+      return sendError(res, "NOT_FOUND", `Report ${id} does not exist.`, 404);
+    }
+
+    const photoUrl = existing[0].photo_url;
+
+    // 2. If resolved and a photo exists — delete from Storage, clear the URL
+    if (status === "resolved" && photoUrl) {
+      const filePath = extractStoragePath(photoUrl);
+
+      if (filePath) {
+        const { error: storageError } = await storageClient.storage
+          .from("lost-persons")           // your bucket name
+          .remove([filePath]);
+
+        if (storageError) {
+          // Log but don't block — storage failure must never prevent a status update
+          console.error("[lost-persons/patch] Storage delete failed:", storageError.message);
+        }
+      }
+    }
+
+    // 3. Update the row — clear photo_url when resolved
+    const { rowCount } = await pool.query(
+      `UPDATE lost_person_reports
+       SET status     = $1,
+           notes      = $2,
+           photo_url  = $3,
+           updated_at = $4
+       WHERE report_id = $5`,
+      [
+        status,
+        notes ?? null,
+        status === "resolved" ? null : photoUrl, // clear photo only on resolve
+        new Date().toISOString(),
+        id,
+      ]
+    );
+
     if (rowCount === 0) {
       return sendError(res, "NOT_FOUND", `Report ${id} does not exist.`, 404);
     }
 
-    // 4. Log the status change
+    // 4. Activity log
     await pool.query(
       `INSERT INTO activity_logs (type, description, metadata)
        VALUES ($1, $2, $3)`,
       [
         "lost_person_status_update",
         `Report ${id} marked as ${status}`,
-        JSON.stringify({ report_id: id, status }),
-      ],
+        JSON.stringify({ report_id: id, status, photo_deleted: status === "resolved" && !!photoUrl }),
+      ]
     );
 
     return sendSuccess(res, {
-      id: id,
-      status: status,
+      id,
+      status,
       updatedAt: new Date().toISOString(),
     });
   } catch (err) {
@@ -249,3 +285,14 @@ export const updateLostPersonStatus: RequestHandler = async (req, res) => {
     return sendError(res, "DATABASE_ERROR", "Status update failed.", 500);
   }
 };
+
+
+function extractStoragePath(url: string): string | null {
+  try {
+    const marker = "/lost-persons/";
+    const index  = url.indexOf(marker);
+    return index !== -1 ? url.substring(index + marker.length) : null;
+  } catch {
+    return null;
+  }
+}

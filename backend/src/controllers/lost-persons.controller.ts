@@ -66,7 +66,7 @@ export const createLostPersonReport: RequestHandler = async (req, res) => {
     await pool.query(
       `INSERT INTO lost_person_reports
         (report_id, description, last_known_location, location,
-         reporter_phone, status, source, created_at, updated_at)
+         photo_url, reporter_phone, status, source, created_at, updated_at)
        VALUES
         ($1, $2, $3,
          ${
@@ -82,6 +82,7 @@ export const createLostPersonReport: RequestHandler = async (req, res) => {
             input.lastSeenLocation,
             input.reporterPhone ?? null,
             input.source,
+            input.photo_url,
             now,
             input.lng,
             input.lat,

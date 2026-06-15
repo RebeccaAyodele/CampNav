@@ -6,6 +6,8 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(32),
   AT_API_KEY: z.string().min(1),
   AT_USERNAME: z.string().min(1),
+  SUPABASE_URL: z.string().url(),
+  SUPABASE_SERVICE_KEY: z.string().min(1),
   PORT: z.coerce.number().int().positive().default(3001),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   CORS_ORIGIN: z.string().default("http://localhost:3000")
@@ -18,6 +20,8 @@ export const config = {
   jwtSecret: env.JWT_SECRET,
   africaTalkingApiKey: env.AT_API_KEY,
   africaTalkingUsername: env.AT_USERNAME,
+  supabaseUrl: env.SUPABASE_URL,
+  supabaseServiceKey: env.SUPABASE_SERVICE_KEY,
   port: env.PORT,
   nodeEnv: env.NODE_ENV,
   corsOrigin: env.CORS_ORIGIN

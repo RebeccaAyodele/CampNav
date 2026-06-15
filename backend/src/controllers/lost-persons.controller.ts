@@ -12,6 +12,7 @@ const lostPersonSchema = z.object({
   reporterName: z.string().min(1).optional(),
   reporterPhone: z.string().min(1).optional(),
   lastSeenLocation: z.string().min(1), // maps to last_known_location
+  photo_url: z.string().url().optional(),
   lat: z.number().optional(),
   lng: z.number().optional(),
   source: z.enum(["app", "ussd", "dashboard"]).default("app"),

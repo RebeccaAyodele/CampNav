@@ -59,16 +59,34 @@ async function seed() {
 
   await withTransaction(async (client) => {
     // ── Admin user ──────────────────────────────────────────────────
-    await client.query(
-      `INSERT INTO users (name, email, password_hash, role)
-       VALUES ($1, $2, $3, 'admin')
-       ON CONFLICT (email)
-       DO UPDATE SET
-         name = EXCLUDED.name,
-         password_hash = EXCLUDED.password_hash,
-         role = EXCLUDED.role;`,
-      ["Demo Admin", config.demoAdminEmail, passwordHash]
-    );
+    // The users table may have extra columns from Prisma (phone, etc.)
+    // Use savepoints to handle schema mismatch gracefully
+    await client.query("SAVEPOINT admin_insert");
+    try {
+      await client.query(
+        `INSERT INTO users (name, email, password_hash, role, phone)
+         VALUES ($1, $2, $3, 'admin', $4)
+         ON CONFLICT (email)
+         DO UPDATE SET
+           name = EXCLUDED.name,
+           password_hash = EXCLUDED.password_hash,
+           role = EXCLUDED.role;`,
+        ["Demo Admin", config.demoAdminEmail, passwordHash, "0000000000"]
+      );
+      await client.query("RELEASE SAVEPOINT admin_insert");
+    } catch {
+      await client.query("ROLLBACK TO SAVEPOINT admin_insert");
+      await client.query(
+        `INSERT INTO users (name, email, password_hash, role)
+         VALUES ($1, $2, $3, 'admin')
+         ON CONFLICT (email)
+         DO UPDATE SET
+           name = EXCLUDED.name,
+           password_hash = EXCLUDED.password_hash,
+           role = EXCLUDED.role;`,
+        ["Demo Admin", config.demoAdminEmail, passwordHash]
+      );
+    }
 
     // ── Clear old seed data ─────────────────────────────────────────
     await client.query(`DELETE FROM roads`);

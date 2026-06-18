@@ -63,13 +63,9 @@ export async function findNearest(
   type?: string,
   limit = 3
 ): Promise<PoiWithDistance[]> {
-  const conditions = type ? `WHERE type = $3` : "";
-  const params: unknown[] = type ? [lat, lng, type] : [lat, lng];
-
-  const result = await query<PoiRow>(
-    `SELECT * FROM pois ${conditions} ORDER BY name`,
-    type ? [type] : []
-  );
+  const result = type
+    ? await query<PoiRow>(`SELECT * FROM pois WHERE type = $1`, [type])
+    : await query<PoiRow>(`SELECT * FROM pois`);
 
   // Calculate distances in application code (avoids needing PostGIS)
   const withDistance = result.rows.map((row) => ({

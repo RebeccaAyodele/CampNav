@@ -15,6 +15,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { Menu } from "lucide-react";
 import { ROUTES } from "@/constants";
 
 export default function HomePage() {
@@ -38,6 +39,14 @@ export default function HomePage() {
         .campnav-grid {
           background-image: radial-gradient(rgba(160, 65, 0, 0.08) 1px, transparent 1px);
           background-size: 28px 28px;
+        }
+
+        .campnav-mobile-menu > summary {
+          list-style: none;
+        }
+
+        .campnav-mobile-menu > summary::-webkit-details-marker {
+          display: none;
         }
 
         @keyframes campnav-reveal {
@@ -78,10 +87,39 @@ export default function HomePage() {
               Admin Login
             </Link>
           </nav>
+
+          <details className="campnav-mobile-menu relative md:hidden">
+            <summary
+              aria-label="Open navigation menu"
+              className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-md border border-white/[0.15] bg-white/10 text-white transition-colors hover:bg-white/20"
+            >
+              <Menu aria-hidden="true" className="h-5 w-5" />
+            </summary>
+
+            <div className="absolute right-0 top-14 w-[min(18rem,calc(100vw-2rem))] rounded-2xl border border-white/[0.15] bg-[#1a1c1e]/95 p-3 shadow-[0_24px_70px_rgba(0,0,0,0.35)] backdrop-blur">
+              <nav className="flex flex-col gap-1">
+                <a href="#platform" className="rounded-xl px-4 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-white/75 transition-colors hover:bg-white/10 hover:text-white">
+                  Platform
+                </a>
+                <a href="#features" className="rounded-xl px-4 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-white/75 transition-colors hover:bg-white/10 hover:text-white">
+                  Features
+                </a>
+                <a href="#footer" className="rounded-xl px-4 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-white/75 transition-colors hover:bg-white/10 hover:text-white">
+                  Resources
+                </a>
+                <Link
+                  href={ROUTES.DASHBOARD_LOGIN}
+                  className="mt-2 rounded-xl bg-white px-4 py-3 text-center text-sm font-semibold uppercase tracking-[0.16em] text-[#1a1c1e] transition-colors hover:bg-[#ff6b00] hover:text-[#572000]"
+                >
+                  Admin Login
+                </Link>
+              </nav>
+            </div>
+          </details>
         </div>
       </header>
 
-      <section className="relative flex min-h-screen items-center overflow-hidden pt-20">
+      <section className="relative flex min-h-svh items-center overflow-hidden pt-20 lg:min-h-screen">
         {/* Responsive cinematic hero background */}
         <div className="absolute inset-0 z-0">
           <picture>
@@ -97,41 +135,41 @@ export default function HomePage() {
           <div className="absolute inset-0 campnav-grid opacity-30" />
         </div>
 
-        <div className="relative mx-24 grid w-full items-center gap-10 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[1.05fr_0.95fr] lg:px-8 lg:py-20">
-          <div className="flex w-full max-w-3xl flex-col items-start gap-6 text-white campnav-reveal sm:gap-8">
-            <div className="space-y-5 sm:space-y-6">
-              <h1 className="max-w-4xl text-4xl font-black tracking-[-0.04em] sm:text-6xl lg:text-7xl">
+        <div className="relative grid w-full items-center gap-6 px-4 py-8 sm:px-6 sm:py-16 lg:mx-24 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 lg:px-8 lg:py-20">
+          <div className="flex w-full max-w-3xl flex-col items-start gap-5 text-white campnav-reveal sm:gap-8">
+            <div className="space-y-4 sm:space-y-6">
+              <h1 className="max-w-4xl text-5xl font-black tracking-[-0.02em] sm:text-6xl sm:tracking-[-0.04em] lg:text-7xl">
                 Logistics for the
                 <span className="block text-[#ff6b00]">Off-Grid World.</span>
               </h1>
-              <p className="max-w-2xl text-base leading-7 text-white/82 sm:text-lg sm:leading-8 lg:text-xl">
+              <p className="max-w-2xl leading-6 text-white/82 sm:text-lg sm:leading-8 lg:text-xl">
                 Authoritative navigation and resource tracking for large-scale outdoor gatherings where connectivity is a luxury.              </p>
             </div>
 
             <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:gap-4">
               <Link
                 href={ROUTES.APP}
-                className="campnav-glow inline-flex items-center justify-center rounded-xl bg-[#ff6b00] px-6 py-3.5 text-sm font-semibold uppercase tracking-[0.18em] text-[#572000] transition-transform hover:-translate-y-0.5 hover:bg-[#ff7a1a] sm:px-7 sm:py-4"
+                className="campnav-glow inline-flex items-center justify-center rounded-xl bg-[#ff6b00] px-5 py-3.5 text-xs font-semibold uppercase tracking-[0.12em] text-[#572000] transition-transform hover:-translate-y-0.5 hover:bg-[#ff7a1a] sm:px-7 sm:py-4 sm:text-sm sm:tracking-[0.18em]"
               >
                 Open Visitor App
               </Link>
               <Link
                 href={ROUTES.DASHBOARD_LOGIN}
-                className="inline-flex items-center justify-center rounded-xl border border-white/18 bg-white/6 px-6 py-3.5 text-sm font-semibold uppercase tracking-[0.18em] text-white transition-all hover:bg-white hover:text-[#1a1c1e] sm:px-7 sm:py-4"
+                className="inline-flex items-center justify-center rounded-xl border border-white/18 bg-white/6 px-5 py-3.5 text-xs font-semibold uppercase tracking-[0.12em] text-white transition-all hover:bg-white hover:text-[#1a1c1e] sm:px-7 sm:py-4 sm:text-sm sm:tracking-[0.18em]"
               >
                 Admin Login
               </Link>
             </div>
           </div>
 
-          <div className="campnav-reveal pointer-events-none flex min-h-65 items-center justify-center lg:min-h-130">
+          <div className="campnav-reveal pointer-events-none flex min-h-52 items-center justify-center sm:min-h-65 lg:min-h-0">
             <Image
               src="/golden-globe.png"
               alt=""
               width={720}
               height={720}
               priority
-              className="h-auto w-full max-w-90 object-contain drop-shadow-[0_28px_80px_rgba(255,107,0,0.32)] sm:max-w-115 lg:max-w-140"
+              className="h-auto w-full max-w-72 object-contain drop-shadow-[0_28px_80px_rgba(255,107,0,0.32)] sm:max-w-115 lg:max-w-none"
             />
           </div>
         </div>
@@ -139,7 +177,7 @@ export default function HomePage() {
 
       <section id="platform" className="border-y border-[#e2e2e5] bg-[#ffffff] py-24">
         <div className="mx-auto grid max-w-7xl items-stretch gap-8 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
-          <div className="campnav-reveal rounded-3xl bg-[#f9f9fc] p-8 shadow-[0_20px_60px_rgba(26,28,30,0.06)]">
+          <div className="campnav-reveal rounded-3xl bg-[#f9f9fc] md:p-8 p-4 shadow-[0_20px_60px_rgba(26,28,30,0.06)]">
             <h2 className="mt-4 max-w-xl text-4xl font-black tracking-[-0.04em] text-[#1a1c1e] sm:text-5xl">
               Engineered for silence.
             </h2>
@@ -249,13 +287,13 @@ export default function HomePage() {
           <div className="flex w-full flex-col justify-center gap-3 pt-2 sm:w-auto sm:flex-row sm:gap-4">
             <Link
               href={ROUTES.APP}
-              className="inline-flex items-center justify-center rounded-full bg-[#ff6b00] px-7 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-[#572000] transition-transform hover:-translate-y-0.5 hover:bg-[#ff7a1a]"
+              className="inline-flex items-center justify-center rounded-xl bg-[#ff6b00] px-7 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-[#572000] transition-transform hover:-translate-y-0.5 hover:bg-[#ff7a1a]"
             >
               Launch Platform
             </Link>
             <Link
               href={ROUTES.DASHBOARD_LOGIN}
-              className="inline-flex items-center justify-center rounded-full border border-white/15 px-7 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-white transition-colors hover:bg-white hover:text-[#1a1c1e]"
+              className="inline-flex items-center justify-center rounded-xl border border-white/15 px-7 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-white transition-colors hover:bg-white hover:text-[#1a1c1e]"
             >
               Request Demo
             </Link>

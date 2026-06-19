@@ -36,14 +36,11 @@ export default function MapView({
   markers = [],
   routes = [],
 }: MapViewProps): JSX.Element {
-  // MapLibre GL initialization and rendering will go here
   return (
     <div
       className="w-full h-full bg-surface flex items-center justify-center relative"
       onClick={() => {
-        // Map click handler will go here
         if (onLocationSelect) {
-          // onLocationSelect({lat: event.lngLat.lat, lng: event.lngLat.lng});
         }
       }}
     >

@@ -7,7 +7,7 @@
  *   const response = await apiClient.get<LocationType>("/locations");
  */
 
-import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from "axios";
+import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig, AxiosRequestConfig } from "axios";
 import { config } from "@/config";
 import { logger } from "@/lib/logger";
 
@@ -110,7 +110,7 @@ class APIClient {
   /**
    * Generic GET request with type safety
    */
-  async get<T>(url: string, config?: AxiosInstance["defaults"]): Promise<T> {
+  async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.get<T>(url, config);
     return response.data;
   }
@@ -118,7 +118,7 @@ class APIClient {
   /**
    * Generic POST request with type safety
    */
-  async post<T>(url: string, data?: unknown, config?: AxiosInstance["defaults"]): Promise<T> {
+  async post<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.post<T>(url, data, config);
     return response.data;
   }
@@ -126,7 +126,7 @@ class APIClient {
   /**
    * Generic PUT request with type safety
    */
-  async put<T>(url: string, data?: unknown, config?: AxiosInstance["defaults"]): Promise<T> {
+  async put<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.put<T>(url, data, config);
     return response.data;
   }
@@ -134,7 +134,7 @@ class APIClient {
   /**
    * Generic DELETE request with type safety
    */
-  async delete<T>(url: string, config?: AxiosInstance["defaults"]): Promise<T> {
+  async delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.delete<T>(url, config);
     return response.data;
   }
@@ -142,7 +142,7 @@ class APIClient {
   /**
    * Generic PATCH request with type safety
    */
-  async patch<T>(url: string, data?: unknown, config?: AxiosInstance["defaults"]): Promise<T> {
+  async patch<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.patch<T>(url, data, config);
     return response.data;
   }

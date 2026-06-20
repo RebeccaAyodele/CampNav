@@ -47,6 +47,6 @@ export function useLang(): {
   return {
     language,
     setLanguage,
-    supportedLanguages: config.i18n.supportedLanguages,
+    supportedLanguages: [...config.i18n.supportedLanguages],
   };
 }

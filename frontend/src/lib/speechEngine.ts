@@ -29,8 +29,8 @@ export function startVoiceRecognition(
   onEnd?: () => void
 ): { stop: () => void } | null {
   const SpeechRecognition =
-    (window as unknown as { SpeechRecognition?: typeof window.SpeechRecognition }).SpeechRecognition ||
-    (window as unknown as { webkitSpeechRecognition?: typeof window.SpeechRecognition }).webkitSpeechRecognition;
+    (window as any).SpeechRecognition ||
+    (window as any).webkitSpeechRecognition;
 
   if (!SpeechRecognition) {
     onError?.("Speech recognition is not supported in this browser.");
@@ -43,7 +43,7 @@ export function startVoiceRecognition(
   recognition.maxAlternatives = 1;
   recognition.continuous = false;
 
-  recognition.onresult = (event: SpeechRecognitionEvent) => {
+  recognition.onresult = (event: any) => {
     const result = event.results[0]?.[0];
     if (result) {
       onResult({
@@ -53,7 +53,7 @@ export function startVoiceRecognition(
     }
   };
 
-  recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+  recognition.onerror = (event: any) => {
     onError?.(event.error || "Speech recognition error");
   };
 

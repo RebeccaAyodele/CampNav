@@ -1,12 +1,16 @@
-import type { RequestHandler } from "express";
+import type { NextFunction, Request, Response } from "express";
+import * as ussdService from "../services/ussd.service.js";
 
-export const handleUssdWebhook: RequestHandler = (req, res) => {
-  const text = String(req.body.text ?? "");
+export const handleUssdWebhook = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const sessionId = String(req.body.sessionId ?? "");
+    const phoneNumber = String(req.body.phoneNumber ?? "");
+    const text = String(req.body.text ?? "");
 
-  if (!text) {
-    res.type("text/plain").send("CON Welcome to CampNav\n1. Find facility\n2. Find zone\n3. Lost person\n4. Emergency");
-    return;
+    const response = await ussdService.handleSession(sessionId, phoneNumber, text);
+
+    res.type("text/plain").send(response);
+  } catch (error) {
+    next(error);
   }
-
-  res.type("text/plain").send("END CampNav USSD flow placeholder. Backend menu logic goes here.");
 };

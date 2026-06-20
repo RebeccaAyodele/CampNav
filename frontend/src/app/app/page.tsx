@@ -1,124 +1,147 @@
 /**
- * Main Map Screen (/app)
- *
- * Purpose:
- *   - Full-screen offline map display
- *   - Search bar at top
- *   - Language toggle button
- *   - Navigation to search, report, and emergency pages
+ * Visitor Map Screen (/app/page.tsx)
+ * Centered on Redemption City, offline-capable, features search (online API or local Fuse.js),
+ * geolocation, voice search integration, and a premium slide-up details sheet for directions.
  */
 
 "use client";
 
-import { useEffect, useMemo, useRef, useState, ReactElement } from "react";
+import React, { useState, useEffect, useRef, useMemo, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import maplibregl from "maplibre-gl";
-import { LocateFixed, Search } from "lucide-react";
-import { campLocations, type CampLocationCategory } from "@/data/campLocations";
+import Fuse from "fuse.js";
+import { useTranslation } from "react-i18next";
+import { Search, Navigation, LocateFixed, Mic, AlertCircle, MapPin, X, ArrowRight } from "lucide-react";
 
-type CampFeature = {
-  type: "Feature";
-  properties: {
-    id?: string;
-    name: string;
-    category: CampLocationCategory;
-  };
-  geometry: {
-    type: "Point";
-    coordinates: [number, number];
-  };
+import { getPOIs, type GeoJSONPointFeature } from "@/data/campGeoJSON";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { apiClient } from "@/lib/api";
+import { startVoiceRecognition, isSpeechRecognitionSupported } from "@/lib/speechEngine";
+
+const DEFAULT_CENTER: [number, number] = [3.4588, 6.8097]; // Redemption City [lng, lat]
+const DEFAULT_ZOOM = 14;
+
+const CATEGORY_COLORS: Record<string, string> = {
+  parking: "#3B82F6",       // Blue
+  religion: "#8B5CF6",      // Purple
+  commerce: "#F97316",      // Orange
+  residential: "#10B981",   // Green
+  accommodation: "#06B6D4", // Cyan
+  finance: "#EAB308",       // Yellow
+  recreation: "#84CC16",    // Lime
+  education: "#6366F1",     // Indigo
+  medical: "#EF4444",       // Red
+  services: "#64748B",      // Slate
 };
 
-type CampGeoJSON = {
-  type: "FeatureCollection";
-  features: CampFeature[];
-};
-
-const mapCenter: [number, number] = [3.4588, 6.8097];
-
-const categoryColors: Record<CampLocationCategory, string> = {
-  parking: "#2563eb",
-  religion: "#7c3aed",
-  commerce: "#ea580c",
-  residential: "#16a34a",
-  accommodation: "#0891b2",
-  finance: "#ca8a04",
-  recreation: "#65a30d",
-  education: "#4f46e5",
-  medical: "#dc2626",
-  services: "#475569",
-};
-
-const categoryColorExpression: maplibregl.ExpressionSpecification = [
-  "match",
-  ["get", "category"],
-  "parking",
-  categoryColors.parking,
-  "religion",
-  categoryColors.religion,
-  "commerce",
-  categoryColors.commerce,
-  "residential",
-  categoryColors.residential,
-  "accommodation",
-  categoryColors.accommodation,
-  "finance",
-  categoryColors.finance,
-  "recreation",
-  categoryColors.recreation,
-  "education",
-  categoryColors.education,
-  "medical",
-  categoryColors.medical,
-  "services",
-  categoryColors.services,
-  "#475569",
-];
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+interface POIData {
+  id: string;
+  name: string;
+  category: string;
+  lat: number;
+  lng: number;
+  description?: string;
+  zone?: string | null;
 }
 
-export default function AppMapPage(): ReactElement {
-  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+function MapContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { t, i18n } = useTranslation();
+  const { mode } = useNetworkStatus();
+
+  const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
-  const [query, setQuery] = useState("");
 
-  const filteredLocations = useMemo(() => {
-  const normalizedQuery = query.trim().toLowerCase();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<POIData[]>([]);
+  const [selectedPOI, setSelectedPOI] = useState<POIData | null>(null);
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [isListening, setIsListening] = useState(false);
+  const [mapLoaded, setMapLoaded] = useState(false);
 
-  const features = (campLocations as CampGeoJSON).features;
+  // Initialize Fuse.js for offline fuzzy search
+  const localPOIs = useMemo(() => {
+    return getPOIs().map((poi) => ({
+      id: poi.properties.id,
+      name: poi.properties.name,
+      category: poi.properties.category || "services",
+      lat: poi.geometry.coordinates[1],
+      lng: poi.geometry.coordinates[0],
+      description: poi.properties.zone ? `Zone ${poi.properties.zone}` : undefined,
+      zone: poi.properties.zone,
+    }));
+  }, []);
 
-  if (!normalizedQuery) {
-    return features.slice(0, 6);
-  }
+  const fuse = useMemo(() => {
+    return new Fuse(localPOIs, {
+      keys: ["name", "category", "description"],
+      threshold: 0.3,
+    });
+  }, [localPOIs]);
 
-  return features
-    .filter((feature: CampFeature) => {
-      const { name, category } = feature.properties;
-
-      return (
-        name.toLowerCase().includes(normalizedQuery) ||
-        category.toLowerCase().includes(normalizedQuery)
-      );
-    })
-    .slice(0, 6);
-}, [query]);
-
+  // Read search query from URL (e.g., set by voice search redirect)
   useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) {
+    const urlQuery = searchParams.get("q");
+    if (urlQuery) {
+      setSearchQuery(urlQuery);
+      handleSearchSubmit(urlQuery);
+    }
+  }, [searchParams]);
+
+  // Search execution
+  const handleSearchSubmit = async (query: string) => {
+    if (!query.trim()) {
+      setSearchResults([]);
       return;
     }
 
+    if (mode === "online") {
+      try {
+        const response = await apiClient.get<{ success: boolean; data: { results: any[] } }>(
+          `/api/route/search?q=${encodeURIComponent(query)}`
+        );
+        if (response.success && response.data?.results) {
+          const formatted = response.data.results.map((res: any) => ({
+            id: res.id,
+            name: res.name,
+            category: res.type || "services",
+            lat: res.lat,
+            lng: res.lng,
+            description: res.description,
+            zone: res.zone || null,
+          }));
+          setSearchResults(formatted.slice(0, 10));
+        } else {
+          runOfflineFallbackSearch(query);
+        }
+      } catch (err) {
+        runOfflineFallbackSearch(query);
+      }
+    } else {
+      runOfflineFallbackSearch(query);
+    }
+  };
+
+  const runOfflineFallbackSearch = (query: string) => {
+    const fuseResults = fuse.search(query);
+    setSearchResults(fuseResults.map((r) => r.item).slice(0, 10));
+  };
+
+  // Run search when query changes (with debounce)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      handleSearchSubmit(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, mode]);
+
+  // Map initialization
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
+
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
-      center: mapCenter,
-      zoom: 13,
-      attributionControl: false,
       style: {
         version: 8,
         sources: {
@@ -126,92 +149,103 @@ export default function AppMapPage(): ReactElement {
             type: "raster",
             tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
             tileSize: 256,
-            attribution: "OpenStreetMap contributors",
+            attribution: "© OpenStreetMap contributors",
           },
         },
         layers: [
           {
-            id: "osm",
+            id: "osm-layer",
             type: "raster",
             source: "osm",
+            minzoom: 0,
+            maxzoom: 19,
           },
         ],
       },
+      center: DEFAULT_CENTER,
+      zoom: DEFAULT_ZOOM,
+      attributionControl: false,
     });
 
     mapRef.current = map;
-    map.addControl(new maplibregl.NavigationControl({ showCompass: true }), "bottom-left");
-    map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
 
     map.on("load", () => {
-      map.addSource("camp-locations", {
+      setMapLoaded(true);
+
+      // Add source for POIs
+      map.addSource("pois", {
         type: "geojson",
-        data: campLocations,
+        data: {
+          type: "FeatureCollection",
+          features: getPOIs() as any,
+        },
       });
 
+      // Add circle layer with colors mapped to category
+      const colorMatchExpression: any[] = ["match", ["get", "category"]];
+      Object.entries(CATEGORY_COLORS).forEach(([cat, color]) => {
+        colorMatchExpression.push(cat, color);
+      });
+      colorMatchExpression.push("#64748B"); // Fallback color
+
       map.addLayer({
-        id: "camp-location-points",
+        id: "poi-circles",
         type: "circle",
-        source: "camp-locations",
+        source: "pois",
         paint: {
-          "circle-color": categoryColorExpression,
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 5, 15, 9],
-          "circle-stroke-color": "#ffffff",
+          "circle-color": colorMatchExpression as any,
+          "circle-radius": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            12,
+            5,
+            16,
+            10,
+          ],
           "circle-stroke-width": 2,
+          "circle-stroke-color": "#ffffff",
         },
       });
 
-      map.addLayer({
-        id: "camp-location-labels",
-        type: "symbol",
-        source: "camp-locations",
-        minzoom: 14,
-        layout: {
-          "text-field": ["get", "name"],
-          "text-font": ["Open Sans Regular"],
-          "text-offset": [0, 1.2],
-          "text-size": 12,
-          "text-anchor": "top",
-        },
-        paint: {
-          "text-color": "#1f2937",
-          "text-halo-color": "#ffffff",
-          "text-halo-width": 1.5,
-        },
+      // Interactive clicks on markers
+      map.on("click", "poi-circles", (e) => {
+        const feature = e.features?.[0];
+        if (feature) {
+          const props = feature.properties as any;
+          const coords = (feature.geometry as any).coordinates;
+          const poi: POIData = {
+            id: props.id,
+            name: props.name,
+            category: props.category || "services",
+            lat: coords[1],
+            lng: coords[0],
+            zone: props.zone || null,
+          };
+          handleSelectPOI(poi);
+        }
       });
 
-      const bounds = new maplibregl.LngLatBounds();
-      campLocations.features.forEach((feature: CampFeature) => {
-        bounds.extend(feature.geometry.coordinates);
+      map.on("mouseenter", "poi-circles", () => {
+        map.getCanvas().style.cursor = "pointer";
       });
-      map.fitBounds(bounds, { padding: 64, maxZoom: 14 });
+
+      map.on("mouseleave", "poi-circles", () => {
+        map.getCanvas().style.cursor = "";
+      });
     });
 
-    map.on("click", "camp-location-points", (event) => {
-      const feature = event.features?.[0];
-      if (!feature || feature.geometry.type !== "Point") {
-        return;
-      }
-
-      const coordinates = feature.geometry.coordinates as [number, number];
-      const name = String(feature.properties?.name ?? "Camp location");
-      const category = feature.properties.category as CampLocationCategory;
-
-      new maplibregl.Popup({ closeButton: true, offset: 16 })
-        .setLngLat(coordinates)
-        .setHTML(
-          `<strong>${escapeHtml(name)}</strong><br/><span>${escapeHtml(category)}</span>`,
-        )
-        .addTo(map);
-    });
-
-    map.on("mouseenter", "camp-location-points", () => {
-      map.getCanvas().style.cursor = "pointer";
-    });
-
-    map.on("mouseleave", "camp-location-points", () => {
-      map.getCanvas().style.cursor = "";
-    });
+    // Try to get user location immediately
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const coords: [number, number] = [pos.coords.longitude, pos.coords.latitude];
+          setUserLocation(coords);
+        },
+        null,
+        { enableHighAccuracy: true }
+      );
+    }
 
     return () => {
       map.remove();
@@ -219,101 +253,205 @@ export default function AppMapPage(): ReactElement {
     };
   }, []);
 
-  function flyToLocation(coordinates: [number, number]): void {
+  const handleSelectPOI = (poi: POIData) => {
+    setSelectedPOI(poi);
+    setSearchResults([]);
+
     mapRef.current?.flyTo({
-      center: coordinates,
+      center: [poi.lng, poi.lat],
       zoom: 16,
       essential: true,
     });
-  }
+  };
 
-  function locateUser(): void {
-    if (!navigator.geolocation) {
-      return;
-    }
+  const locateUser = () => {
+    if (!navigator.geolocation) return;
 
-    navigator.geolocation.getCurrentPosition((position) => {
-      mapRef.current?.flyTo({
-        center: [position.coords.longitude, position.coords.latitude],
-        zoom: 16,
-        essential: true,
-      });
-    });
-  }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords: [number, number] = [pos.coords.longitude, pos.coords.latitude];
+        setUserLocation(coords);
+        mapRef.current?.flyTo({
+          center: coords,
+          zoom: 16,
+          essential: true,
+        });
+
+        // Add temporary user location marker if loaded
+        if (mapRef.current) {
+          const el = document.getElementById("user-loc-marker") || document.createElement("div");
+          el.id = "user-loc-marker";
+          el.className = "h-4 w-4 bg-blue-600 border-2 border-white rounded-full shadow-md animate-pulse";
+          
+          new maplibregl.Marker({ element: el })
+            .setLngLat(coords)
+            .addTo(mapRef.current);
+        }
+      },
+      (err) => {
+        console.error("Geolocation error:", err);
+      },
+      { enableHighAccuracy: true }
+    );
+  };
+
+  const startVoice = () => {
+    setIsListening(true);
+    startVoiceRecognition(
+      i18n.language,
+      (res) => {
+        setIsListening(false);
+        setSearchQuery(res.transcript);
+        handleSearchSubmit(res.transcript);
+      },
+      () => setIsListening(false),
+      () => setIsListening(false)
+    );
+  };
+
+  const getDirectionsURL = () => {
+    if (!selectedPOI) return "";
+    const olat = userLocation ? userLocation[1] : DEFAULT_CENTER[1];
+    const olng = userLocation ? userLocation[0] : DEFAULT_CENTER[0];
+    return `/app/directions/${selectedPOI.id}?olat=${olat}&olng=${olng}&dlat=${selectedPOI.lat}&dlng=${selectedPOI.lng}&name=${encodeURIComponent(selectedPOI.name)}`;
+  };
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-surface">
-      <div className="z-10 border-b border-border bg-white p-3 shadow-sm">
-        <div className="container mx-auto flex gap-2">
+    <div className="relative h-full w-full flex flex-col">
+      {/* Top Search Bar Card */}
+      <div className="absolute top-4 left-4 right-4 z-10 max-w-md mx-auto">
+        <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200/50 p-2.5 flex items-center gap-2 transition-all">
           <div className="relative flex-1">
-            <Search
-              aria-hidden="true"
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted"
-            />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
             <input
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search locations..."
-              className="w-full rounded-lg border border-border bg-surface py-2 pl-9 pr-4 text-sm placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent-500"
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t("searchPlaceholder")}
+              className="w-full bg-slate-50 border-0 pl-10 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0D1B4B]/20 text-slate-800 placeholder-slate-400 font-medium"
             />
-          </div>
-
-          <button
-            type="button"
-            className="rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-primary-900 transition-colors hover:bg-white"
-          >
-            EN
-          </button>
-        </div>
-      </div>
-
-      <div className="relative min-h-0 flex-1">
-        <div ref={mapContainerRef} className="h-full w-full" />
-
-        {query.trim() ? (
-          <div className="absolute left-3 right-3 top-3 z-10 max-h-64 overflow-auto rounded-xl border border-border bg-white p-2 shadow-lg sm:left-4 sm:right-auto sm:w-96">
-            {filteredLocations.length > 0 ? (
-              filteredLocations.map((feature: CampFeature) => (
-                <button
-                  key={feature.properties.id}
-                  type="button"
-                  onClick={() => flyToLocation(feature.geometry.coordinates)}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-surface"
-                >
-                  <span
-                    className="h-3 w-3 shrink-0 rounded-full"
-                    style={{ backgroundColor: categoryColors[feature.properties.category] }}
-                  />
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold text-primary-900">
-                      {feature.properties.name}
-                    </span>
-                    <span className="block text-xs capitalize text-text-muted">
-                      {feature.properties.category}
-                    </span>
-                  </span>
-                </button>
-              ))
-            ) : (
-              <p className="px-3 py-2 text-sm text-text-muted">No matching locations.</p>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
             )}
           </div>
-        ) : null}
 
+          {isSpeechRecognitionSupported() && (
+            <button
+              onClick={startVoice}
+              className={`p-2.5 rounded-xl transition-all ${
+                isListening
+                  ? "bg-rose-500 text-white animate-pulse"
+                  : "bg-slate-100 hover:bg-slate-200 text-slate-600"
+              }`}
+              title={t("voiceSearch")}
+            >
+              <Mic className="h-5 w-5" />
+            </button>
+          )}
+        </div>
+
+        {/* Search Results Dropdown */}
+        {searchResults.length > 0 && (
+          <div className="mt-2 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-200/50 overflow-hidden max-h-72 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
+            {searchResults.map((poi) => (
+              <button
+                key={poi.id}
+                onClick={() => handleSelectPOI(poi)}
+                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors"
+              >
+                <div
+                  className="h-3 w-3 rounded-full shrink-0"
+                  style={{ backgroundColor: CATEGORY_COLORS[poi.category] || "#64748B" }}
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-800 truncate">
+                    {poi.name}
+                  </p>
+                  <p className="text-xs text-slate-400 capitalize font-medium">
+                    {t(poi.category)} {poi.zone ? `• Zone ${poi.zone}` : ""}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Map Container */}
+      <div ref={mapContainerRef} className="flex-1 h-full w-full" />
+
+      {/* Floating Action Buttons */}
+      <div className="absolute right-4 bottom-6 z-10 flex flex-col gap-3">
         <button
-          type="button"
           onClick={locateUser}
-          className="absolute bottom-4 right-4 z-10 rounded-full bg-white p-3 text-primary-900 shadow-md transition-shadow hover:shadow-lg"
-          title="Current location"
+          className="p-3.5 bg-white text-slate-700 hover:text-slate-900 rounded-full shadow-lg border border-slate-200 hover:bg-slate-50 transition-all active:scale-95"
+          title={t("currentLocation")}
         >
-          <LocateFixed aria-hidden="true" className="h-5 w-5" />
+          <LocateFixed className="h-5.5 w-5.5" />
         </button>
+      </div>
 
-        <div className="absolute left-4 top-4 hidden rounded-lg bg-warning-light px-3 py-2 text-xs font-medium text-warning-dark">
-          Currently offline
+      {/* Selected Location Slide-up Bottom Sheet */}
+      {selectedPOI && (
+        <div className="absolute bottom-4 left-4 right-4 z-20 max-w-md mx-auto bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden animate-in slide-in-from-bottom-5 duration-300">
+          <div className="p-5">
+            <div className="flex justify-between items-start mb-3">
+              <div>
+                <span
+                  className="inline-block text-[10px] uppercase font-bold tracking-widest px-2.5 py-1 rounded-full mb-2 text-white"
+                  style={{ backgroundColor: CATEGORY_COLORS[selectedPOI.category] || "#64748B" }}
+                >
+                  {t(selectedPOI.category)}
+                </span>
+                <h3 className="text-lg font-bold text-slate-800">
+                  {selectedPOI.name}
+                </h3>
+              </div>
+              <button
+                onClick={() => setSelectedPOI(null)}
+                className="p-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {selectedPOI.description && (
+              <p className="text-sm text-slate-500 font-medium mb-4">
+                {selectedPOI.description}
+              </p>
+            )}
+
+            <button
+              onClick={() => router.push(getDirectionsURL())}
+              className="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-[#0D1B4B] hover:bg-indigo-900 text-white rounded-xl font-bold shadow-lg shadow-[#0D1B4B]/20 transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99]"
+            >
+              <Navigation className="h-5 w-5" />
+              <span>{t("getDirections")}</span>
+              <ArrowRight className="h-4 w-4 ml-1" />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function VisitorMapPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-full w-full items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 border-4 border-[#0D1B4B] border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm font-semibold text-slate-600">Loading map...</p>
         </div>
       </div>
-    </div>
+    }>
+      <MapContent />
+    </Suspense>
   );
 }

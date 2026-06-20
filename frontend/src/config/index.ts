@@ -14,10 +14,10 @@ export const config = {
   // ── Map Configuration ──
   map: {
     defaultCenter: {
-      lat: parseFloat(process.env.NEXT_PUBLIC_MAP_CENTER_LAT || "0"),
-      lng: parseFloat(process.env.NEXT_PUBLIC_MAP_CENTER_LNG || "0"),
+      lat: parseFloat(process.env.NEXT_PUBLIC_MAP_CENTER_LAT || "6.8097"),
+      lng: parseFloat(process.env.NEXT_PUBLIC_MAP_CENTER_LNG || "3.4588"),
     },
-    defaultZoom: parseInt(process.env.NEXT_PUBLIC_MAP_DEFAULT_ZOOM || "13", 10),
+    defaultZoom: parseInt(process.env.NEXT_PUBLIC_MAP_DEFAULT_ZOOM || "14", 10),
     styleUrl:
       process.env.NEXT_PUBLIC_MAPLIBRE_STYLE_URL ||
       "https://api.maptiler.com/maps/streets/style.json",
@@ -37,9 +37,7 @@ export const config = {
   // ── Internationalization ──
   i18n: {
     defaultLanguage: process.env.NEXT_PUBLIC_DEFAULT_LANGUAGE || "en",
-    supportedLanguages: (
-      process.env.NEXT_PUBLIC_SUPPORTED_LANGUAGES || "en,es,fr"
-    ).split(","),
+    supportedLanguages: ["en", "yo", "ha", "ig", "fr"],
   },
 
   // ── Timeouts (milliseconds) ──
@@ -47,6 +45,7 @@ export const config = {
     apiRequest: parseInt(process.env.NEXT_PUBLIC_API_TIMEOUT || "10000", 10),
     offlineRetry: 5000,
     geolocationTimeout: 10000,
+    healthCheckInterval: 15000,
   },
 
   // ── URLs ──
@@ -54,6 +53,11 @@ export const config = {
     privacyPolicy: "/privacy",
     termsOfService: "/terms",
     supportEmail: "support@campnav.example.com",
+  },
+
+  // ── WebSocket ──
+  websocket: {
+    url: process.env.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001",
   },
 } as const;
 

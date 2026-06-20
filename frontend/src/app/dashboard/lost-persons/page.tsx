@@ -1,148 +1,297 @@
 /**
  * Lost Persons Feed Page (/dashboard/lost-persons)
- *
- * Purpose:
- *   - List of all submitted lost person reports in reverse chronological order
- *   - Each entry shows: description, time submitted, last known location, status
- *   - Status dropdown to update: Open, Found, Closed
- *   - Filter and search controls
- *
- * Components that will go here:
- *   - Lost person report cards or table rows
- *   - Status update dropdown
- *   - Filter/search controls
- *   - Location map preview
- *   - Detail view modal
+ * Lists all lost person reports with filtering, status change API,
+ * WebSocket real-time updates, and pagination.
  */
 
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import { AlertCircle, Calendar, MapPin, Phone, User, Radio, RefreshCw, Layers, ShieldCheck, Navigation } from "lucide-react";
+
+import { apiClient } from "@/lib/api";
+import { onEvent, offEvent } from "@/lib/socketClient";
 
 interface LostPersonReport {
   id: string;
+  name?: string;
   description: string;
-  submittedAt: string;
-  location: string;
-  status: "open" | "located" | "closed";
-  reporter: string;
+  reporterName?: string;
+  reporterPhone?: string;
+  lastSeenLocation?: string;
+  lat?: number;
+  lng?: number;
+  source: "app" | "ussd" | "dashboard";
+  status: "open" | "in_progress" | "resolved";
+  createdAt: string;
+  updatedAt: string;
 }
 
-export default function LostPersonsPage(): JSX.Element {
-  const [reports, setReports] = useState<LostPersonReport[]>([
-    {
-      id: "1",
-      description: "Male, ~35 years old, blue shirt, glasses",
-      submittedAt: "10 min ago",
-      location: "Near medical tent, Zone A",
-      status: "open",
-      reporter: "Sarah Johnson",
-    },
-    {
-      id: "2",
-      description: "Female child, ~7 years old, pink backpack",
-      submittedAt: "25 min ago",
-      location: "Food court area",
-      status: "located",
-      reporter: "Alex Garcia",
-    },
-    {
-      id: "3",
-      description: "Elderly woman with white hair, walker",
-      submittedAt: "2 hours ago",
-      location: "Parking lot C",
-      status: "closed",
-      reporter: "James Smith",
-    },
-  ]);
+export default function LostPersonsPage() {
+  const { t } = useTranslation();
 
-  const handleStatusChange = (id: string, newStatus: string) => {
-    setReports(
-      reports.map((r) =>
-        r.id === id ? { ...r, status: newStatus as LostPersonReport["status"] } : r
-      )
-    );
-  };
+  const [reports, setReports] = useState<LostPersonReport[]>([]);
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+  
+  // Pagination
+  const [totalCount, setTotalCount] = useState(0);
+  const [offset, setOffset] = useState(0);
+  const LIMIT = 15;
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "open":
-        return "bg-error-light text-error-dark";
-      case "located":
-        return "bg-warning-light text-warning-dark";
-      case "closed":
-        return "bg-success-light text-success-dark";
-      default:
-        return "bg-surface text-text-secondary";
+  const fetchReports = async (currentOffset: number, append: boolean = false) => {
+    try {
+      setLoading(true);
+      const statusParam = filterStatus !== "all" ? `&status=${filterStatus}` : "";
+      
+      const response = await apiClient.get<{
+        success: boolean;
+        data: { total: number; reports: LostPersonReport[] };
+      }>(`/api/lost-persons?limit=${LIMIT}&offset=${currentOffset}${statusParam}`);
+
+      if (response.success && response.data) {
+        setTotalCount(response.data.total);
+        if (append) {
+          setReports((prev) => [...prev, ...response.data.reports]);
+        } else {
+          setReports(response.data.reports);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load reports:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getStatusLabel = (status: string) => {
-    return status.charAt(0).toUpperCase() + status.slice(1);
+  // Reload reports when status filter changes
+  useEffect(() => {
+    setOffset(0);
+    fetchReports(0, false);
+  }, [filterStatus]);
+
+  // Listen to WebSocket events
+  useEffect(() => {
+    const handleNewLostPerson = (data: LostPersonReport) => {
+      // Show browser notification or alert if not filtered out
+      if (filterStatus === "all" || filterStatus === data.status) {
+        setReports((prev) => [data, ...prev]);
+        setTotalCount((c) => c + 1);
+      }
+    };
+
+    const handleStatusChanged = (data: { id: string; status: "open" | "in_progress" | "resolved" }) => {
+      setReports((prev) =>
+        prev.map((r) => (r.id === data.id ? { ...r, status: data.status } : r))
+      );
+    };
+
+    onEvent<LostPersonReport>("new_lost_person", handleNewLostPerson);
+    onEvent<{ id: string; status: "open" | "in_progress" | "resolved" }>(
+      "lost_person_status_changed",
+      handleStatusChanged
+    );
+
+    return () => {
+      offEvent("new_lost_person", handleNewLostPerson);
+      offEvent("lost_person_status_changed", handleStatusChanged);
+    };
+  }, [filterStatus]);
+
+  const handleStatusChange = async (id: string, newStatus: "open" | "in_progress" | "resolved") => {
+    try {
+      const response = await apiClient.patch<{ success: boolean }>(
+        `/api/lost-persons/${id}/status`,
+        { status: newStatus }
+      );
+      if (response.success) {
+        setReports((prev) =>
+          prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
+        );
+      }
+    } catch (err) {
+      alert("Failed to update status. Please try again.");
+    }
   };
 
+  const handleLoadMore = () => {
+    const nextOffset = offset + LIMIT;
+    setOffset(nextOffset);
+    fetchReports(nextOffset, true);
+  };
+
+  const getStatusStyle = (status: string) => {
+    switch (status) {
+      case "open":
+        return "bg-rose-500/20 text-rose-400 border border-rose-500/30";
+      case "in_progress":
+        return "bg-amber-500/20 text-amber-400 border border-amber-500/30";
+      case "resolved":
+        return "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+      default:
+        return "bg-slate-500/20 text-slate-400 border border-slate-500/30";
+    }
+  };
+
+  const getSourceBadge = (source: string) => {
+    switch (source) {
+      case "app":
+        return "bg-blue-600/20 text-blue-400 border border-blue-500/30";
+      case "ussd":
+        return "bg-purple-600/20 text-purple-400 border border-purple-500/30";
+      default:
+        return "bg-slate-600/20 text-slate-400 border border-slate-500/30";
+    }
+  };
+
+  // Local client side search filter
+  const searchedReports = reports.filter((report) => {
+    return (
+      report.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (report.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (report.reporterName || "").toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  });
+
   return (
-    <div className="flex flex-col h-full gap-4 p-4 lg:gap-6 lg:p-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-primary-900">Lost Person Reports</h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          All submitted reports in reverse chronological order
-        </p>
+    <div className="space-y-6">
+      {/* Title */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-black text-white">{t("lostPersonReports")}</h1>
+          <p className="text-sm text-slate-400 font-medium mt-0.5">
+            {t("lostPersonReportsSubtitle")}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-1.5 text-xs font-bold text-rose-400 bg-rose-500/10 border border-rose-500/25 px-3.5 py-1.5 rounded-full">
+          <Radio className="h-4 w-4 animate-pulse text-rose-400" />
+          <span>REAL-TIME DISPATCH</span>
+        </div>
       </div>
 
-      {/* Controls */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      {/* Filters bar */}
+      <div className="flex flex-col sm:flex-row gap-3 bg-[#0D1B4B]/35 border border-white/5 p-4 rounded-2xl shadow-lg">
         <input
           type="text"
-          placeholder="Search reports..."
-          className="flex-1 rounded-lg border border-border bg-white px-4 py-2 text-sm placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent-500"
+          placeholder="Filter description, person name or reporter..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/35 focus:outline-none focus:border-blue-500 font-medium"
         />
-        <select className="rounded-lg border border-border bg-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-500">
-          <option>All Status</option>
-          <option>Open</option>
-          <option>Located</option>
-          <option>Closed</option>
+
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 font-bold uppercase tracking-wider"
+        >
+          <option value="all">All Statuses</option>
+          <option value="open">Open</option>
+          <option value="in_progress">In Progress</option>
+          <option value="resolved">Resolved</option>
         </select>
       </div>
 
-      {/* Reports List */}
-      <div className="flex-1 overflow-auto space-y-3">
-        {reports.map((report) => (
-          <div key={report.id} className="rounded-lg border border-border bg-white p-4 space-y-3">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 space-y-2">
-                <p className="font-semibold text-primary-900">{report.description}</p>
-                <div className="grid gap-2 text-sm text-text-secondary sm:grid-cols-2">
-                  <div>
-                    <p className="text-xs text-text-muted">Submitted</p>
-                    <p>{report.submittedAt}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-text-muted">Last Known Location</p>
-                    <p>{report.location}</p>
-                  </div>
+      {/* Reports Feed */}
+      {searchedReports.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {searchedReports.map((report) => (
+            <div
+              key={report.id}
+              className="bg-[#0D1B4B]/20 border border-white/5 rounded-3xl p-5 shadow-xl flex flex-col justify-between space-y-4 hover:border-white/10 transition-colors animate-in fade-in duration-200"
+            >
+              {/* Header: source, timestamp, status */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded ${getSourceBadge(report.source)}`}>
+                    {report.source}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    {new Date(report.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </span>
                 </div>
-                <p className="text-xs text-text-muted">Reporter: {report.reporter}</p>
-              </div>
 
-              <div className="flex flex-col gap-2">
                 <select
                   value={report.status}
-                  onChange={(e) => handleStatusChange(report.id, e.target.value)}
-                  className={`rounded-lg px-3 py-1 text-xs font-medium border border-border focus:outline-none focus:ring-2 focus:ring-accent-500 ${getStatusColor(
-                    report.status
-                  )}`}
+                  onChange={(e) => handleStatusChange(report.id, e.target.value as any)}
+                  className={`bg-slate-900 font-extrabold uppercase tracking-wider text-[10px] px-2.5 py-1 rounded-full cursor-pointer focus:outline-none ${getStatusStyle(report.status)}`}
                 >
-                  <option value="open">Open</option>
-                  <option value="located">Located</option>
-                  <option value="closed">Closed</option>
+                  <option value="open">{t("open")}</option>
+                  <option value="in_progress">{t("inProgress")}</option>
+                  <option value="resolved">{t("resolved")}</option>
                 </select>
               </div>
+
+              {/* Description body */}
+              <div className="space-y-1">
+                {report.name && (
+                  <h3 className="text-base font-extrabold text-white flex items-center gap-1.5">
+                    <User className="h-4.5 w-4.5 text-blue-400" />
+                    <span>{report.name}</span>
+                  </h3>
+                )}
+                <p className="text-sm text-slate-200 font-semibold leading-relaxed">
+                  {report.description}
+                </p>
+              </div>
+
+              <hr className="border-white/5" />
+
+              {/* Meta details */}
+              <div className="space-y-2 text-xs font-semibold text-slate-400">
+                {report.lastSeenLocation && (
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-rose-400 shrink-0" />
+                    <span className="truncate">Last seen: {report.lastSeenLocation}</span>
+                  </div>
+                )}
+                {report.lat && report.lng && (
+                  <div className="flex items-center gap-2 font-mono text-[10px] text-slate-500">
+                    <Navigation className="h-4 w-4 text-blue-400 shrink-0" />
+                    <span>GPS: {report.lat.toFixed(5)}, {report.lng.toFixed(5)}</span>
+                  </div>
+                )}
+                {report.reporterName && (
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <span className="truncate">Reporter: {report.reporterName}</span>
+                  </div>
+                )}
+                {report.reporterPhone && (
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-slate-400 shrink-0" />
+                    <span>Phone: {report.reporterPhone}</span>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-[#0D1B4B]/20 border border-white/5 rounded-3xl py-20 flex items-center justify-center text-slate-500 font-semibold">
+          {loading ? (
+            <div className="h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          ) : (
+            "No reports match the active filters"
+          )}
+        </div>
+      )}
+
+      {/* Pagination Load More button */}
+      {reports.length < totalCount && !loading && (
+        <div className="flex justify-center pt-4">
+          <button
+            onClick={handleLoadMore}
+            className="flex items-center gap-2 px-6 py-3 bg-[#0D1B4B]/50 hover:bg-[#0D1B4B] border border-white/10 rounded-xl text-xs font-extrabold uppercase tracking-wider text-slate-200 transition-all active:scale-[0.98]"
+          >
+            <Layers className="h-4 w-4" />
+            <span>Load More Reports</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

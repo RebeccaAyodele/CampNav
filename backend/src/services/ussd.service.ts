@@ -266,7 +266,7 @@ export async function handleSession(
       "CON Welcome to CampNav",
       "Redemption City Navigation",
       "",
-      "Select Language / Yan Ede:",
+      "Select Language:",
       "1. English",
       "2. Yoruba",
       "3. Hausa",

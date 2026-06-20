@@ -3,6 +3,7 @@ import { ErrorCodes } from "../constants/error-codes.js";
 import type { LostPersonReportRow, LostPersonSource, LostPersonStatus } from "../types/db.js";
 import { AppError } from "../utils/app-error.js";
 import { writeLog } from "./logs.service.js";
+import { emitEvent } from "./websocket.service.js";
 
 interface CreateReportInput {
   name?: string;
@@ -46,7 +47,7 @@ export async function createReport(data: CreateReportInput) {
     status: row.status
   });
 
-  return {
+  const reportData = {
     id: row.id,
     name: row.name,
     description: row.description,
@@ -59,6 +60,10 @@ export async function createReport(data: CreateReportInput) {
     status: row.status,
     createdAt: row.created_at.toISOString()
   };
+
+  emitEvent("new_lost_person", reportData);
+
+  return reportData;
 }
 
 export async function listReports(filters: ListFilters = {}) {
@@ -130,10 +135,14 @@ export async function updateStatus(id: string, status: LostPersonStatus) {
     new_status: status
   });
 
-  return {
+  const updateData = {
     id: row.id,
     status: row.status,
     resolvedAt: row.resolved_at?.toISOString() ?? null,
     updatedAt: row.updated_at.toISOString()
   };
+
+  emitEvent("lost_person_status_changed", updateData);
+
+  return updateData;
 }

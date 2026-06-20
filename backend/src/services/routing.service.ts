@@ -57,11 +57,30 @@ interface Step {
   distance_meters: number;
 }
 
-function generateSteps(coords: [number, number][], routeName?: string): Step[] {
+function getSideOfPath(pathBearing: number, bearingToPoi: number): "left" | "right" | "near" {
+  let diff = bearingToPoi - pathBearing;
+  while (diff > 180) diff -= 360;
+  while (diff < -180) diff += 360;
+
+  if (diff > 20 && diff < 160) return "right";
+  if (diff < -20 && diff > -160) return "left";
+  return "near";
+}
+
+function generateSteps(
+  coords: [number, number][],
+  pois: PoiRow[],
+  originPoiName?: string,
+  destPoiName?: string
+): Step[] {
   if (coords.length < 2) return [];
 
   const steps: Step[] = [];
   let prevBearing: number | null = null;
+
+  // Clean names to prevent matching start/end POIs as landmarks
+  const cleanStartName = (originPoiName ?? "").toLowerCase().trim();
+  const cleanEndName = (destPoiName ?? "").toLowerCase().trim();
 
   for (let i = 0; i < coords.length - 1; i++) {
     // GeoJSON coords are [lng, lat]
@@ -72,25 +91,53 @@ function generateSteps(coords: [number, number][], routeName?: string): Step[] {
     const bearing = calculateBearing(lat1!, lng1!, lat2!, lng2!);
     const direction = bearingToDirection(bearing);
 
+    // Look for a nearby landmark along this step
+    let landmarkText = "";
+    for (const poi of pois) {
+      const cleanPoiName = poi.name.toLowerCase().trim();
+      // Skip start and end POIs
+      if (
+        cleanPoiName.includes(cleanStartName) ||
+        cleanStartName.includes(cleanPoiName) ||
+        cleanPoiName.includes(cleanEndName) ||
+        cleanEndName.includes(cleanPoiName)
+      ) {
+        continue;
+      }
+
+      // Check distance from current step start coordinate to the POI
+      const distanceToPoi = haversine(lat1!, lng1!, poi.lat, poi.lng);
+      if (distanceToPoi <= 45) { // Within 45 meters
+        const poiBearing = calculateBearing(lat1!, lng1!, poi.lat, poi.lng);
+        const side = getSideOfPath(bearing, poiBearing);
+        
+        if (side === "left") {
+          landmarkText = ` (passing ${poi.name} on your left)`;
+        } else if (side === "right") {
+          landmarkText = ` (passing ${poi.name} on your right)`;
+        } else {
+          landmarkText = ` (passing near ${poi.name})`;
+        }
+        break; // Only mention one landmark per segment to avoid cluttering
+      }
+    }
+
+    let instruction = "";
     if (prevBearing !== null) {
       const turn = detectTurn(prevBearing, bearing);
       if (turn) {
-        steps.push({
-          instruction: `Turn ${turn} and walk ${dist}m heading ${direction}`,
-          distance_meters: dist
-        });
+        instruction = `Turn ${turn} and walk ${dist}m heading ${direction}${landmarkText}`;
       } else {
-        steps.push({
-          instruction: `Continue straight for ${dist}m heading ${direction}`,
-          distance_meters: dist
-        });
+        instruction = `Continue straight for ${dist}m heading ${direction}${landmarkText}`;
       }
     } else {
-      steps.push({
-        instruction: `Head ${direction} for ${dist}m`,
-        distance_meters: dist
-      });
+      instruction = `Head ${direction} for ${dist}m${landmarkText}`;
     }
+
+    steps.push({
+      instruction,
+      distance_meters: dist
+    });
 
     prevBearing = bearing;
   }
@@ -204,7 +251,7 @@ export async function getDirections(
         ? [...match.route.coordinates].reverse()
         : match.route.coordinates;
 
-      const steps = generateSteps(coords, match.route.road.name ?? undefined);
+      const steps = generateSteps(coords, pois, originPoi.name, destPoi.name);
       const totalDistance = steps.reduce((sum, s) => sum + s.distance_meters, 0);
 
       return {
@@ -223,6 +270,24 @@ export async function getDirections(
   const bearing = calculateBearing(origin.lat, origin.lng, destination.lat, destination.lng);
   const direction = bearingToDirection(bearing);
 
+  const steps = generateSteps(
+    [
+      [origin.lng, origin.lat],
+      [destination.lng, destination.lat]
+    ],
+    pois,
+    originPoi?.name ?? undefined,
+    destPoi?.name ?? undefined
+  );
+
+  // If steps array is empty, add a default fallback instruction
+  if (steps.length === 0) {
+    steps.push({
+      instruction: `Head ${direction} for approximately ${dist}m to your destination${destPoi ? ` (${destPoi.name})` : ""}`,
+      distance_meters: dist
+    });
+  }
+
   return {
     routeId: "straight-line",
     mode,
@@ -232,11 +297,6 @@ export async function getDirections(
       { lat: origin.lat, lng: origin.lng },
       { lat: destination.lat, lng: destination.lng }
     ],
-    steps: [
-      {
-        instruction: `Head ${direction} for approximately ${dist}m to your destination${destPoi ? ` (${destPoi.name})` : ""}`,
-        distance_meters: dist
-      }
-    ]
+    steps
   };
 }

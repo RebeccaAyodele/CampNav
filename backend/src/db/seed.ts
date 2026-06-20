@@ -111,8 +111,17 @@ async function seed() {
       const name = (props.name as string) ?? "Unknown POI";
       const category = (props.category as string) ?? "other";
 
-      // Build aliases from category defaults + name words
-      const aliases = categoryAliases[category] ?? [];
+      // Build aliases from category defaults + custom GeoJSON aliases
+      const defaultAliases = categoryAliases[category] ?? [];
+      const customAliasesVal = props.aliases;
+      let parsedCustomAliases: string[] = [];
+      if (Array.isArray(customAliasesVal)) {
+        parsedCustomAliases = customAliasesVal.map(s => String(s).trim());
+      } else if (typeof customAliasesVal === "string") {
+        parsedCustomAliases = customAliasesVal.split(",").map(s => s.trim()).filter(Boolean);
+      }
+      const aliases = Array.from(new Set([...defaultAliases, ...parsedCustomAliases]));
+
 
       await client.query(
         `INSERT INTO pois (name, type, description, aliases, lat, lng, metadata)

@@ -1,6 +1,7 @@
 import { query } from "../config/db.js";
 import type { ShuttleCheckinRow } from "../types/db.js";
 import { writeLog } from "./logs.service.js";
+import { emitEvent } from "./websocket.service.js";
 
 interface CheckinInput {
   shuttleId: string;
@@ -38,7 +39,7 @@ export async function recordCheckin(data: CheckinInput) {
     zone: data.zone ?? null
   });
 
-  return {
+  const checkinData = {
     id: row.id,
     shuttleId: row.shuttle_id,
     driverName: row.driver_name,
@@ -48,6 +49,11 @@ export async function recordCheckin(data: CheckinInput) {
     passengerLoad: row.passenger_load,
     checkedInAt: row.checked_in_at.toISOString()
   };
+
+  // Emit websocket event
+  emitEvent("shuttle_moved", checkinData);
+
+  return checkinData;
 }
 
 export async function getActiveShuttles() {

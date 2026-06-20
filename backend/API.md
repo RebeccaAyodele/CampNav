@@ -97,14 +97,15 @@ Step-by-step walking or vehicle directions between two points.
     ],
     "steps": [
       { "instruction": "Head south for 254m", "distance_meters": 254 },
-      { "instruction": "Turn left and walk 120m heading southeast", "distance_meters": 120 },
-      { "instruction": "Continue straight for 180m heading south", "distance_meters": 180 }
+      { "instruction": "Turn left and walk 120m heading southeast (passing Access Bank on your left)", "distance_meters": 120 },
+      { "instruction": "Continue straight for 180m heading south (passing Open Heavens International Center on your right)", "distance_meters": 180 }
     ]
   }
 }
 ```
 
-> **Note:** If no pre-traced route exists between the two points, the API returns a straight-line fallback with bearing and distance. The `routeId` will be `"straight-line"` in that case.
+> **Note:** Directions are landmark-aware. The routing engine checks intermediate points against all POIs in the database and automatically appends relative landmark details (left, right, or near) to step instructions to aid navigation in crowded spaces.
+> If no pre-traced route exists between the two points, the API returns a straight-line fallback with bearing, distance, and any landmarks along the straight-line path. The `routeId` will be `"straight-line"` in that case.
 
 ---
 

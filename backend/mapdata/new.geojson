@@ -8,7 +8,8 @@
         "name": "Car Park C",
         "category": "parking",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -25,6 +26,10 @@
         "name": "Open Heavens International Center",
         "category": "religion",
         "zone": null,
+        "aliases": [
+          "Open Heavens",
+          "OHIC"
+        ],
         "photos": []
       },
       "geometry": {
@@ -42,7 +47,8 @@
         "name": "Canaan Land Market",
         "category": "commerce",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -59,7 +65,8 @@
         "name": "Goshen Estate",
         "category": "residential",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -76,7 +83,8 @@
         "name": "Moses Apartment",
         "category": "accommodation",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -93,7 +101,8 @@
         "name": "Grace Court",
         "category": "residential",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -110,7 +119,8 @@
         "name": "Car Park V (RCCG New Auditorium)",
         "category": "parking",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -127,7 +137,8 @@
         "name": "Simawa Car Park (RCCG New Auditorium)",
         "category": "parking",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -144,7 +155,8 @@
         "name": "Goshen Estate RCCG Redemption Camp",
         "category": "residential",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -161,7 +173,8 @@
         "name": "Canaan Land Market",
         "category": "commerce",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -178,7 +191,8 @@
         "name": "Moses Apartment",
         "category": "accommodation",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -195,7 +209,8 @@
         "name": "White House Suites",
         "category": "accommodation",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -212,7 +227,8 @@
         "name": "GT Bank RCCG Camp",
         "category": "finance",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -229,7 +245,8 @@
         "name": "Emmanuel Park",
         "category": "recreation",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -246,7 +263,8 @@
         "name": "Redeemed Christian Bible College Main Campus",
         "category": "education",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -263,7 +281,8 @@
         "name": "RCCG National Teenagers Church",
         "category": "religion",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -280,7 +299,8 @@
         "name": "Redeemer's Health Center",
         "category": "medical",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -297,7 +317,8 @@
         "name": "Mechanic Workshop",
         "category": "services",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -314,7 +335,8 @@
         "name": "Kindness Hostel",
         "category": "accommodation",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -331,7 +353,8 @@
         "name": "RCCG National Teens Hostel",
         "category": "accommodation",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -348,7 +371,8 @@
         "name": "RCCG Health Center",
         "category": "medical",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -365,7 +389,8 @@
         "name": "Open Heavens International Center",
         "category": "religion",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -382,7 +407,8 @@
         "name": "Access Bank RCCG Camp Branch",
         "category": "finance",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -399,7 +425,8 @@
         "name": "CRM SuperMarket",
         "category": "commerce",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -416,7 +443,8 @@
         "name": "Nigeria Police Force Redeem Division",
         "category": "services",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -433,7 +461,8 @@
         "name": "Bethel Suites and Event Center",
         "category": "accommodation",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -450,7 +479,8 @@
         "name": "RCCG Post Office",
         "category": "services",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -467,7 +497,8 @@
         "name": "Conoil Filling Station",
         "category": "finance",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -484,7 +515,8 @@
         "name": "RCCG City Kitchen",
         "category": "commerce",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -501,7 +533,8 @@
         "name": "RCCG Maternity Center",
         "category": "medical",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -518,7 +551,8 @@
         "name": "Halleluyah House",
         "category": "religion",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -535,7 +569,8 @@
         "name": "Pastor's Quarter",
         "category": "residential",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -552,7 +587,8 @@
         "name": "RCCG Accommodation",
         "category": "accommodation",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -569,7 +605,8 @@
         "name": "Sherpherd's Place Apartment",
         "category": "accommodation",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -586,7 +623,8 @@
         "name": "Senior Pastors Lodge",
         "category": "accommodation",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -603,7 +641,8 @@
         "name": "Jordan Executives Chalet",
         "category": "accommodation",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -620,7 +659,8 @@
         "name": "Peaceville School",
         "category": "education",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -637,7 +677,8 @@
         "name": "Redeemers University Staff Quarters",
         "category": "residential",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -654,7 +695,8 @@
         "name": "Comfort Palace",
         "category": "accommodation",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -671,7 +713,8 @@
         "name": "Wave of Glory Apartments",
         "category": "accommodation",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -688,7 +731,8 @@
         "name": "Gethsemane Apartment",
         "category": "accommodation",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",
@@ -705,6 +749,10 @@
         "name": "Glory Arena",
         "category": "religion",
         "zone": null,
+        "aliases": [
+          "Gbogan Ogo",
+          "Ogo"
+        ],
         "photos": []
       },
       "geometry": {
@@ -901,7 +949,8 @@
         "id": "rccg_old_arena",
         "category": "religion",
         "zone": null,
-        "photos": []
+        "photos": [],
+        "aliases": []
       },
       "geometry": {
         "type": "Point",

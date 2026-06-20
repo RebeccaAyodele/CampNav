@@ -74,10 +74,10 @@ export function onEvent<T = unknown>(eventName: string, callback: (data: T) => v
 }
 
 /** Remove event listener */
-export function offEvent(eventName: string, callback?: (...args: unknown[]) => void): void {
+export function offEvent<T = any>(eventName: string, callback?: (data: T) => void): void {
   const s = getSocket();
   if (callback) {
-    s.off(eventName, callback);
+    s.off(eventName, callback as (...args: unknown[]) => void);
   } else {
     s.off(eventName);
   }

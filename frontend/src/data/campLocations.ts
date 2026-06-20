@@ -35,7 +35,7 @@ export type CampLocationProperties = {
   photos: string[];
 };
 
-export const campLocations: FeatureCollection<Point, CampLocationProperties> = {
+export const campLocations: any = {
   type: "FeatureCollection",
   features: [
     {

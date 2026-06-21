@@ -104,7 +104,7 @@ export default function VisitorLayout({ children }: { children: React.ReactNode 
 
       {/* ── Premium Dark Header ── */}
       <header
-        className="relative flex items-center justify-between px-4 py-0 z-30 shrink-0 overflow-hidden"
+        className="relative flex items-center justify-between px-4 py-0 z-30 shrink-0"
         style={{
           background: "linear-gradient(135deg, #1a1c1e 0%, #2d1a0e 60%, #3a1f05 100%)",
           minHeight: "56px",

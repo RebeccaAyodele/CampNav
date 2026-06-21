@@ -32,6 +32,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   // Auth Guard
   useEffect(() => {
+    if (pathname === "/dashboard/login") {
+      return;
+    }
     const token = localStorage.getItem("authToken");
     const adminUserJson = localStorage.getItem("adminUser");
     
@@ -46,7 +49,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         } catch (_) {}
       }
     }
-  }, []);
+  }, [pathname]);
 
   // WebSocket lifecycle
   useEffect(() => {
@@ -70,6 +73,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       disconnectSocket();
     };
   }, [isAuthorized]);
+
+  if (pathname === "/dashboard/login") {
+    return <>{children}</>;
+  }
 
   const handleLogout = async () => {
     try {

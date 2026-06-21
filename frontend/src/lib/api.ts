@@ -74,10 +74,14 @@ class APIClient {
 
     let userMessage = "An error occurred. Please try again.";
 
-    if (!navigator.onLine || !error.response) {
-      // No response — offline or backend unavailable; offline fallback will handle it
-      userMessage = "You are currently offline.";
-      logger.warn("API unavailable (offline or backend not running)", {
+    if (!navigator.onLine) {
+      userMessage = "You are currently offline. Please check your internet connection.";
+      logger.warn("User is offline", {
+        url: error.config?.url,
+      });
+    } else if (!error.response) {
+      userMessage = "Server is unreachable. Please verify the backend server is running.";
+      logger.warn("API server unreachable (backend not running)", {
         url: error.config?.url,
       });
     } else if (status === 401 || status === 403) {

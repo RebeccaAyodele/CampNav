@@ -8,6 +8,8 @@ Express + TypeScript API for routing, USSD, dashboard auth, shuttle check-ins, l
 cd backend
 npm install
 cp .env.example .env
+npm run db:migrate
+npm run db:seed
 npm run dev
 ```
 
@@ -20,6 +22,7 @@ Create a PostgreSQL database, then update `DATABASE_URL` in `.env`.
 ```bash
 createdb campnav
 npm run db:migrate
+npm run db:seed
 ```
 
 The first migration creates:
@@ -41,6 +44,7 @@ The initial schema intentionally uses plain PostgreSQL coordinates (`lat`, `lng`
 - `npm run build` - compile TypeScript to `dist/`.
 - `npm start` - run the compiled server.
 - `npm run db:migrate` - apply pending SQL migrations.
+- `npm run db:seed` - insert demo admin, zones, POIs, roads, and a seed log entry.
 - `npm run typecheck` - validate types without emitting files.
 - `npm run lint` - run ESLint over `src/`.
 

@@ -1,5 +1,6 @@
-import type { RequestHandler } from "express";
+import type { NextFunction, Request, Response } from "express";
 import { z } from "zod";
+import * as lostPersonsService from "../services/lost-persons.service.js";
 import { sendSuccess } from "../utils/api-response.js";
 
 const lostPersonSchema = z.object({
@@ -17,33 +18,38 @@ const statusSchema = z.object({
   status: z.enum(["open", "in_progress", "resolved"])
 });
 
-export const createLostPersonReport: RequestHandler = (req, res) => {
-  const input = lostPersonSchema.parse(req.body);
+const listQuerySchema = z.object({
+  status: z.enum(["open", "in_progress", "resolved"]).optional(),
+  limit: z.coerce.number().int().positive().max(100).default(50),
+  offset: z.coerce.number().int().min(0).default(0)
+});
 
-  sendSuccess(
-    res,
-    {
-      id: "lost_person_placeholder",
-      status: "open",
-      ...input,
-      createdAt: new Date().toISOString()
-    },
-    201
-  );
+export const createLostPersonReport = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const input = lostPersonSchema.parse(req.body);
+    const result = await lostPersonsService.createReport(input);
+    sendSuccess(res, result, 201);
+  } catch (error) {
+    next(error);
+  }
 };
 
-export const listLostPersonReports: RequestHandler = (_req, res) => {
-  sendSuccess(res, {
-    reports: []
-  });
+export const listLostPersonReports = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const filters = listQuerySchema.parse(req.query);
+    const result = await lostPersonsService.listReports(filters);
+    sendSuccess(res, result);
+  } catch (error) {
+    next(error);
+  }
 };
 
-export const updateLostPersonStatus: RequestHandler = (req, res) => {
-  const input = statusSchema.parse(req.body);
-
-  sendSuccess(res, {
-    id: req.params.id,
-    status: input.status,
-    updatedAt: new Date().toISOString()
-  });
+export const updateLostPersonStatus = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const input = statusSchema.parse(req.body);
+    const result = await lostPersonsService.updateStatus(req.params.id!, input.status);
+    sendSuccess(res, result);
+  } catch (error) {
+    next(error);
+  }
 };

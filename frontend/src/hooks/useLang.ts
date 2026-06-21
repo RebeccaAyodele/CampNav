@@ -24,7 +24,7 @@ export function useLang(): {
     // Initialize from localStorage or browser preference
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("preferredLanguage");
-      if (saved && config.i18n.supportedLanguages.includes(saved)) {
+      if (saved && (config.i18n.supportedLanguages as readonly string[]).includes(saved)) {
         setLanguageState(saved);
         i18n.changeLanguage(saved);
       }
@@ -32,7 +32,7 @@ export function useLang(): {
   }, [i18n]);
 
   const setLanguage = (lang: string) => {
-    if (!config.i18n.supportedLanguages.includes(lang)) {
+    if (!(config.i18n.supportedLanguages as readonly string[]).includes(lang)) {
       logger.warn("Unsupported language", { lang });
       return;
     }
@@ -47,6 +47,6 @@ export function useLang(): {
   return {
     language,
     setLanguage,
-    supportedLanguages: config.i18n.supportedLanguages,
+    supportedLanguages: [...config.i18n.supportedLanguages],
   };
 }

@@ -1,5 +1,6 @@
-import type { RequestHandler } from "express";
+import type { NextFunction, Request, Response } from "express";
 import { z } from "zod";
+import * as shuttlesService from "../services/shuttles.service.js";
 import { sendSuccess } from "../utils/api-response.js";
 
 const checkinSchema = z.object({
@@ -11,22 +12,21 @@ const checkinSchema = z.object({
   passengerLoad: z.number().int().min(0).optional()
 });
 
-export const recordShuttleCheckin: RequestHandler = (req, res) => {
-  const input = checkinSchema.parse(req.body);
-
-  sendSuccess(
-    res,
-    {
-      id: "checkin_placeholder",
-      ...input,
-      checkedInAt: new Date().toISOString()
-    },
-    201
-  );
+export const recordShuttleCheckin = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const input = checkinSchema.parse(req.body);
+    const result = await shuttlesService.recordCheckin(input);
+    sendSuccess(res, result, 201);
+  } catch (error) {
+    next(error);
+  }
 };
 
-export const getActiveShuttles: RequestHandler = (_req, res) => {
-  sendSuccess(res, {
-    shuttles: []
-  });
+export const getActiveShuttles = async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const shuttles = await shuttlesService.getActiveShuttles();
+    sendSuccess(res, { shuttles });
+  } catch (error) {
+    next(error);
+  }
 };

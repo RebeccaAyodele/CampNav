@@ -89,7 +89,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (!isAuthorized) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#071133] text-white">
-        <div className="h-10 w-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <div className="h-10 w-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -113,8 +113,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Sidebar Header / Brand */}
         <div className="flex h-20 items-center justify-between px-6 border-b border-white/5 shrink-0">
           <div className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-blue-400" />
-            <span className="font-extrabold text-lg tracking-wider bg-gradient-to-r from-blue-400 to-indigo-200 bg-clip-text text-transparent">
+            <Shield className="h-6 w-6 text-orange-400" />
+            <span className="font-extrabold text-lg tracking-wider bg-gradient-to-r from-orange-400 to-indigo-200 bg-clip-text text-transparent">
               CampNav HQ
             </span>
           </div>
@@ -128,12 +128,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* User Card */}
         <div className="px-6 py-5 border-b border-white/5 shrink-0 flex items-center gap-3 bg-[#0a1847]/30">
-          <div className="h-10 w-10 rounded-full bg-blue-600/35 border border-blue-500/25 flex items-center justify-center font-extrabold text-blue-300">
+          <div className="h-10 w-10 rounded-full bg-orange-600/35 border border-orange-500/25 flex items-center justify-center font-extrabold text-orange-300">
             {adminName.charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0">
             <p className="text-sm font-bold text-slate-200 truncate">{adminName}</p>
-            <p className="text-[10px] font-extrabold uppercase tracking-widest text-blue-400 mt-0.5">Control Center</p>
+            <p className="text-[10px] font-extrabold uppercase tracking-widest text-orange-400 mt-0.5">Control Center</p>
           </div>
         </div>
 
@@ -149,7 +149,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 onClick={() => setIsSidebarOpen(false)}
                 className={`flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-sm font-bold tracking-wide transition-all ${
                   isActive
-                    ? "bg-blue-600 text-white shadow-lg shadow-blue-600/15"
+                    ? "bg-orange-600 text-white shadow-lg shadow-orange-600/15"
                     : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
                 }`}
               >
@@ -200,8 +200,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Menu className="h-6 w-6" />
             </button>
             <div className="flex items-center gap-2">
-              <Shield className="h-5.5 w-5.5 text-blue-400" />
-              <span className="font-extrabold text-base tracking-wider bg-gradient-to-r from-blue-400 to-indigo-200 bg-clip-text text-transparent">
+              <Shield className="h-5.5 w-5.5 text-orange-400" />
+              <span className="font-extrabold text-base tracking-wider bg-gradient-to-r from-orange-400 to-indigo-200 bg-clip-text text-transparent">
                 CampNav HQ
               </span>
             </div>

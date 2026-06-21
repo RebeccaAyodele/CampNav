@@ -55,8 +55,8 @@ export default function EmergencyPage() {
       descKey: "securityDesc",
       phone: "+234 803 000 2222",
       icon: ShieldAlert,
-      color: "text-blue-600 border-blue-200 hover:bg-blue-50/50",
-      bgColor: "bg-blue-500",
+      color: "text-orange-600 border-orange-200 hover:bg-blue-50/50",
+      bgColor: "bg-orange-500",
     },
     {
       nameKey: "fire",
@@ -199,7 +199,7 @@ export default function EmergencyPage() {
 
           {loadingFacilities ? (
             <div className="flex justify-center py-4">
-              <div className="h-6 w-6 border-2 border-[#0D1B4B] border-t-transparent rounded-full animate-spin" />
+              <div className="h-6 w-6 border-2 border-[#ff6b00] border-t-transparent rounded-full animate-spin" />
             </div>
           ) : nearestFacilities.length > 0 ? (
             <div className="space-y-3">
@@ -219,7 +219,7 @@ export default function EmergencyPage() {
                     <p className="text-sm font-bold text-slate-700 truncate">{fac.name}</p>
                     <p className="text-xs text-slate-400 font-semibold mt-0.5">Medical Facility</p>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0 text-xs font-extrabold text-[#0D1B4B] bg-[#0D1B4B]/5 px-2.5 py-1 rounded-full">
+                  <div className="flex items-center gap-1 shrink-0 text-xs font-extrabold text-[#ff6b00] bg-[#ff6b00]/5 px-2.5 py-1 rounded-full">
                     <MapPin className="h-3 w-3" />
                     <span>{fac.distance_meters}m</span>
                   </div>

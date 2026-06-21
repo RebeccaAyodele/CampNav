@@ -282,7 +282,7 @@ function MapContent() {
         if (mapRef.current) {
           const el = document.getElementById("user-loc-marker") || document.createElement("div");
           el.id = "user-loc-marker";
-          el.className = "h-4 w-4 bg-blue-600 border-2 border-white rounded-full shadow-md animate-pulse";
+          el.className = "h-4 w-4 bg-orange-600 border-2 border-white rounded-full shadow-md animate-pulse";
           
           new maplibregl.Marker({ element: el })
             .setLngLat(coords)
@@ -329,7 +329,7 @@ function MapContent() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("searchPlaceholder")}
-              className="w-full bg-slate-50 border-0 pl-10 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0D1B4B]/20 text-slate-800 placeholder-slate-400 font-medium"
+              className="w-full bg-slate-50 border-0 pl-10 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6b00]/20 text-slate-800 placeholder-slate-400 font-medium"
             />
             {searchQuery && (
               <button
@@ -429,7 +429,7 @@ function MapContent() {
 
             <button
               onClick={() => router.push(getDirectionsURL())}
-              className="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-[#0D1B4B] hover:bg-indigo-900 text-white rounded-xl font-bold shadow-lg shadow-[#0D1B4B]/20 transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99]"
+              className="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-[#ff6b00] hover:bg-orange-900 text-white rounded-xl font-bold shadow-lg shadow-[#ff6b00]/20 transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99]"
             >
               <Navigation className="h-5 w-5" />
               <span>{t("getDirections")}</span>
@@ -447,7 +447,7 @@ export default function VisitorMapPage() {
     <Suspense fallback={
       <div className="flex h-full w-full items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 border-4 border-[#0D1B4B] border-t-transparent rounded-full animate-spin" />
+          <div className="h-10 w-10 border-4 border-[#ff6b00] border-t-transparent rounded-full animate-spin" />
           <p className="text-sm font-semibold text-slate-600">Loading map...</p>
         </div>
       </div>

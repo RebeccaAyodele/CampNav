@@ -236,7 +236,7 @@ function DirectionsContent() {
   if (loading) {
     return (
       <div className="flex h-full flex-col items-center justify-center bg-slate-50">
-        <div className="h-10 w-10 border-4 border-[#0D1B4B] border-t-transparent rounded-full animate-spin mb-3" />
+        <div className="h-10 w-10 border-4 border-[#ff6b00] border-t-transparent rounded-full animate-spin mb-3" />
         <p className="text-sm font-semibold text-slate-600">{t("loading")}</p>
       </div>
     );
@@ -252,7 +252,7 @@ function DirectionsContent() {
         <p className="text-sm text-slate-500 mb-6">{error || "Failed to load route."}</p>
         <button
           onClick={() => router.push("/app")}
-          className="px-6 py-2 bg-[#0D1B4B] text-white rounded-xl text-sm font-bold shadow-md"
+          className="px-6 py-2 bg-[#ff6b00] text-white rounded-xl text-sm font-bold shadow-md"
         >
           {t("back")}
         </button>
@@ -292,7 +292,7 @@ function DirectionsContent() {
         {/* Route Meta Summary Card */}
         <div className="flex items-center justify-between bg-slate-50 border border-slate-200/50 rounded-xl p-3.5">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+            <div className="p-2 bg-blue-50 text-orange-600 rounded-lg">
               <Navigation className="h-5 w-5" />
             </div>
             <div>
@@ -383,7 +383,7 @@ export default function DirectionsPage() {
   return (
     <Suspense fallback={
       <div className="flex h-full w-full items-center justify-center bg-slate-50">
-        <div className="h-10 w-10 border-4 border-[#0D1B4B] border-t-transparent rounded-full animate-spin mb-3" />
+        <div className="h-10 w-10 border-4 border-[#ff6b00] border-t-transparent rounded-full animate-spin mb-3" />
         <p className="text-sm font-semibold text-slate-600">Loading route details...</p>
       </div>
     }>

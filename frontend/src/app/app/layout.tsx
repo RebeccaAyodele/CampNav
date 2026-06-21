@@ -68,9 +68,9 @@ export default function VisitorLayout({ children }: { children: React.ReactNode 
   return (
     <div className="flex flex-col h-screen bg-slate-50 text-slate-800 antialiased overflow-hidden">
       {/* Top Header */}
-      <header className="flex items-center justify-between px-4 py-3 bg-[#0D1B4B] text-white shadow-md z-30 shrink-0">
+      <header className="flex items-center justify-between px-4 py-3 bg-[#ff6b00] text-white shadow-md z-30 shrink-0">
         <div className="flex items-center gap-2">
-          <span className="font-extrabold text-lg tracking-wider bg-gradient-to-r from-blue-400 to-indigo-200 bg-clip-text text-transparent">
+          <span className="font-extrabold text-lg tracking-wider bg-gradient-to-r from-orange-400 to-indigo-200 bg-clip-text text-transparent">
             CampNav
           </span>
           {/* Offline/Online Status Badge */}
@@ -108,7 +108,7 @@ export default function VisitorLayout({ children }: { children: React.ReactNode 
           {isSpeechRecognitionSupported() && (
             <button
               onClick={triggerVoiceSearch}
-              className="p-2 rounded-full hover:bg-white/10 active:bg-white/20 transition-all text-blue-200 hover:text-white"
+              className="p-2 rounded-full hover:bg-white/10 active:bg-white/20 transition-all text-orange-200 hover:text-white"
               title={t("voiceSearch")}
             >
               <Mic className="h-5 w-5" />
@@ -121,7 +121,7 @@ export default function VisitorLayout({ children }: { children: React.ReactNode 
               onClick={() => setLangDropdownOpen(!langDropdownOpen)}
               className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-sm font-medium border border-white/10"
             >
-              <Globe className="h-4 w-4 text-blue-200" />
+              <Globe className="h-4 w-4 text-orange-200" />
               <span className="uppercase">{currentLang}</span>
             </button>
 
@@ -144,7 +144,7 @@ export default function VisitorLayout({ children }: { children: React.ReactNode 
                       onClick={() => handleLanguageChange(lang.code)}
                       className={`flex w-full items-center px-4 py-2 text-left text-sm hover:bg-slate-50 transition-colors font-medium ${
                         currentLang === lang.code
-                          ? "text-blue-600 bg-blue-50/50"
+                          ? "text-orange-600 bg-blue-50/50"
                           : "text-slate-700"
                       }`}
                     >
@@ -164,13 +164,13 @@ export default function VisitorLayout({ children }: { children: React.ReactNode 
 
         {/* Voice Search / Listening Dialog Overlay */}
         {isListening && (
-          <div className="absolute inset-0 bg-[#0D1B4B]/95 z-50 flex flex-col items-center justify-center text-white px-6 transition-all duration-300">
+          <div className="absolute inset-0 bg-[#ff6b00]/95 z-50 flex flex-col items-center justify-center text-white px-6 transition-all duration-300">
             <div className="relative flex items-center justify-center mb-8">
-              <div className="absolute h-24 w-24 rounded-full bg-blue-500/20 animate-ping" />
-              <div className="absolute h-16 w-16 rounded-full bg-blue-500/40 animate-pulse" />
+              <div className="absolute h-24 w-24 rounded-full bg-orange-500/20 animate-ping" />
+              <div className="absolute h-16 w-16 rounded-full bg-orange-500/40 animate-pulse" />
               <button
                 onClick={() => setIsListening(false)}
-                className="relative bg-blue-600 text-white p-5 rounded-full hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/30"
+                className="relative bg-orange-600 text-white p-5 rounded-full hover:bg-orange-500 transition-colors shadow-lg shadow-orange-500/30"
               >
                 <Mic className="h-8 w-8" />
               </button>
@@ -178,7 +178,7 @@ export default function VisitorLayout({ children }: { children: React.ReactNode 
             <p className="text-xl font-bold tracking-wide mb-2">
               {voiceError ? t("error") : t("listening")}
             </p>
-            <p className="text-sm text-blue-200 text-center max-w-xs">
+            <p className="text-sm text-orange-200 text-center max-w-xs">
               {voiceError || t("voiceSearch")}
             </p>
             <button
@@ -203,16 +203,16 @@ export default function VisitorLayout({ children }: { children: React.ReactNode 
                 href={item.href}
                 className={`flex flex-col items-center gap-1 py-3 px-6 transition-all relative ${
                   isActive
-                    ? "text-[#0D1B4B] scale-105"
+                    ? "text-[#ff6b00] scale-105"
                     : "text-slate-400 hover:text-slate-600"
                 }`}
               >
                 <Icon className={`h-6.5 w-6.5 transition-transform duration-200 ${isActive ? "stroke-[2.5px]" : "stroke-[1.8px]"}`} />
-                <span className={`text-[10px] font-bold tracking-wide ${isActive ? "text-[#0D1B4B]" : "text-slate-400"}`}>
+                <span className={`text-[10px] font-bold tracking-wide ${isActive ? "text-[#ff6b00]" : "text-slate-400"}`}>
                   {item.label}
                 </span>
                 {isActive && (
-                  <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-[#0D1B4B]" />
+                  <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-[#ff6b00]" />
                 )}
               </Link>
             );

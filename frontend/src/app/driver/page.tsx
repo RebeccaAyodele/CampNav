@@ -180,10 +180,10 @@ export default function DriverPage() {
         )}
 
         {/* Input Card Form */}
-        <form onSubmit={handleSubmit} className="bg-[#0D1B4B]/30 border border-white/10 rounded-2xl p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="bg-[#ff6b00]/30 border border-white/10 rounded-2xl p-5 space-y-4">
           {/* Shuttle ID */}
           <div>
-            <label className="block text-xs font-bold text-blue-200 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <label className="block text-xs font-bold text-orange-200 uppercase tracking-wider mb-2 flex items-center gap-1.5">
               <Bus className="h-4 w-4" />
               <span>{t("vehicleId")} *</span>
             </label>
@@ -193,14 +193,14 @@ export default function DriverPage() {
               value={formData.shuttleId}
               onChange={handleInputChange}
               placeholder={t("vehicleIdPlaceholder")}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold placeholder-white/35 focus:outline-none focus:border-blue-400 text-lg uppercase"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold placeholder-white/35 focus:outline-none focus:border-orange-400 text-lg uppercase"
               required
             />
           </div>
 
           {/* Driver Name */}
           <div>
-            <label className="block text-xs font-bold text-blue-200 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <label className="block text-xs font-bold text-orange-200 uppercase tracking-wider mb-2 flex items-center gap-1.5">
               <User className="h-4 w-4" />
               <span>{t("driverName")}</span>
             </label>
@@ -210,14 +210,14 @@ export default function DriverPage() {
               value={formData.driverName}
               onChange={handleInputChange}
               placeholder={t("driverNamePlaceholder")}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold placeholder-white/35 focus:outline-none focus:border-blue-400"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold placeholder-white/35 focus:outline-none focus:border-orange-400"
             />
           </div>
 
           {/* Zone and Passenger Load Row */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-blue-200 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <label className="block text-xs font-bold text-orange-200 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                 <Map className="h-4 w-4" />
                 <span>{t("zone")}</span>
               </label>
@@ -227,12 +227,12 @@ export default function DriverPage() {
                 value={formData.zone}
                 onChange={handleInputChange}
                 placeholder={t("zonePlaceholder")}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold placeholder-white/35 focus:outline-none focus:border-blue-400 uppercase"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold placeholder-white/35 focus:outline-none focus:border-orange-400 uppercase"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-blue-200 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <label className="block text-xs font-bold text-orange-200 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                 <Users className="h-4 w-4" />
                 <span>{t("passengerLoad")}</span>
               </label>
@@ -264,7 +264,7 @@ export default function DriverPage() {
 
           {/* Location status coordinates */}
           <div className="bg-white/5 border border-white/10 rounded-xl p-3.5 flex items-center justify-between text-xs">
-            <span className="font-bold text-blue-200 uppercase tracking-wider flex items-center gap-1">
+            <span className="font-bold text-orange-200 uppercase tracking-wider flex items-center gap-1">
               <MapPin className="h-4 w-4" />
               Location
             </span>
@@ -279,7 +279,7 @@ export default function DriverPage() {
               <button
                 type="button"
                 onClick={trackLocation}
-                className="p-1 rounded bg-white/10 hover:bg-white/20 active:scale-95 text-blue-200 hover:text-white"
+                className="p-1 rounded bg-white/10 hover:bg-white/20 active:scale-95 text-orange-200 hover:text-white"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${isLocating ? "animate-spin" : ""}`} />
               </button>
@@ -290,7 +290,7 @@ export default function DriverPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-6 bg-blue-500 hover:bg-blue-600 text-white font-black text-xl rounded-2xl shadow-xl shadow-blue-500/20 transition-all active:scale-[0.98] disabled:bg-slate-700 disabled:shadow-none"
+            className="w-full py-6 bg-orange-500 hover:bg-orange-600 text-white font-black text-xl rounded-2xl shadow-xl shadow-orange-500/20 transition-all active:scale-[0.98] disabled:bg-slate-700 disabled:shadow-none"
           >
             {isSubmitting ? (
               <RefreshCw className="h-7 w-7 animate-spin mx-auto" />
@@ -304,7 +304,7 @@ export default function DriverPage() {
       {/* Footer Info */}
       <div className="text-center space-y-3 py-6 shrink-0 border-t border-white/5 mt-6">
         {lastCheckinTime && (
-          <p className="text-sm font-bold text-blue-300">
+          <p className="text-sm font-bold text-orange-300">
             {t("lastCheckin")}: <span className="text-white">{lastCheckinTime}</span>
           </p>
         )}

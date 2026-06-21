@@ -199,19 +199,19 @@ export default function ShuttlesPage() {
         {/* Shuttles Table (Left 2 cols) */}
         <div className="xl:col-span-2 space-y-4">
           {/* Controls bar */}
-          <div className="flex flex-col sm:flex-row gap-3 bg-[#0D1B4B]/35 border border-white/5 p-4 rounded-2xl shadow-lg">
+          <div className="flex flex-col sm:flex-row gap-3 bg-[#ff6b00]/35 border border-white/5 p-4 rounded-2xl shadow-lg">
             <input
               type="text"
               placeholder="Search shuttle ID or driver..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/35 focus:outline-none focus:border-blue-500 font-medium"
+              className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/35 focus:outline-none focus:border-orange-500 font-medium"
             />
             
             <select
               value={filterZone}
               onChange={(e) => setFilterZone(e.target.value)}
-              className="bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 font-bold uppercase tracking-wider"
+              className="bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500 font-bold uppercase tracking-wider"
             >
               <option value="all">All Zones</option>
               {availableZones.map((zone) => (
@@ -223,10 +223,10 @@ export default function ShuttlesPage() {
           </div>
 
           {/* Table Container */}
-          <div className="bg-[#0D1B4B]/20 border border-white/5 rounded-3xl overflow-hidden shadow-xl">
+          <div className="bg-[#ff6b00]/20 border border-white/5 rounded-3xl overflow-hidden shadow-xl">
             {loading ? (
               <div className="flex items-center justify-center py-20">
-                <div className="h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                <div className="h-8 w-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
               </div>
             ) : filteredShuttles.length > 0 ? (
               <div className="overflow-x-auto">
@@ -245,7 +245,7 @@ export default function ShuttlesPage() {
                     {filteredShuttles.map((shuttle) => (
                       <tr key={shuttle.shuttleId} className="hover:bg-white/5 transition-colors">
                         <td className="px-6 py-4 font-bold text-white flex items-center gap-2">
-                          <Bus className="h-4.5 w-4.5 text-blue-400" />
+                          <Bus className="h-4.5 w-4.5 text-orange-400" />
                           <span>{shuttle.shuttleId}</span>
                         </td>
                         <td className="px-6 py-4 text-slate-300 font-semibold">
@@ -256,7 +256,7 @@ export default function ShuttlesPage() {
                         </td>
                         <td className="px-6 py-4">
                           {shuttle.zone ? (
-                            <span className="bg-blue-500/10 text-blue-400 border border-blue-500/25 px-2.5 py-1 rounded-full text-xs font-black uppercase">
+                            <span className="bg-orange-500/10 text-orange-400 border border-orange-500/25 px-2.5 py-1 rounded-full text-xs font-black uppercase">
                               Zone {shuttle.zone}
                             </span>
                           ) : (
@@ -285,9 +285,9 @@ export default function ShuttlesPage() {
         </div>
 
         {/* Supply Route Optimizer (Right 1 col) */}
-        <div className="bg-[#0D1B4B]/35 border border-white/5 rounded-3xl p-5 shadow-2xl space-y-5 h-fit">
+        <div className="bg-[#ff6b00]/35 border border-white/5 rounded-3xl p-5 shadow-2xl space-y-5 h-fit">
           <div className="flex items-center gap-2 border-b border-white/5 pb-3">
-            <Compass className="h-5.5 w-5.5 text-indigo-400 animate-spin" style={{ animationDuration: "12s" }} />
+            <Compass className="h-5.5 w-5.5 text-orange-400 animate-spin" style={{ animationDuration: "12s" }} />
             <h2 className="font-extrabold text-sm text-slate-300 tracking-wide uppercase">
               {t("supplyRouteOptimizer")}
             </h2>
@@ -311,7 +311,7 @@ export default function ShuttlesPage() {
                   placeholder="Lat"
                   value={origin.lat}
                   onChange={(e) => setOrigin({ ...origin, lat: e.target.value })}
-                  className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/20 focus:outline-none focus:border-indigo-500 font-semibold"
+                  className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/20 focus:outline-none focus:border-orange-500 font-semibold"
                   required
                 />
                 <input
@@ -319,7 +319,7 @@ export default function ShuttlesPage() {
                   placeholder="Lng"
                   value={origin.lng}
                   onChange={(e) => setOrigin({ ...origin, lng: e.target.value })}
-                  className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/20 focus:outline-none focus:border-indigo-500 font-semibold"
+                  className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/20 focus:outline-none focus:border-orange-500 font-semibold"
                   required
                 />
               </div>
@@ -332,7 +332,7 @@ export default function ShuttlesPage() {
                 <button
                   type="button"
                   onClick={addStop}
-                  className="text-blue-400 hover:text-blue-300 flex items-center gap-1 font-bold lowercase tracking-normal text-xs"
+                  className="text-orange-400 hover:text-orange-300 flex items-center gap-1 font-bold lowercase tracking-normal text-xs"
                 >
                   <Plus className="h-3.5 w-3.5" /> add
                 </button>
@@ -346,7 +346,7 @@ export default function ShuttlesPage() {
                     placeholder="Lat"
                     value={stop.lat}
                     onChange={(e) => handleStopChange(idx, "lat", e.target.value)}
-                    className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/20 focus:outline-none focus:border-indigo-500 font-semibold flex-1"
+                    className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/20 focus:outline-none focus:border-orange-500 font-semibold flex-1"
                     required
                   />
                   <input
@@ -354,7 +354,7 @@ export default function ShuttlesPage() {
                     placeholder="Lng"
                     value={stop.lng}
                     onChange={(e) => handleStopChange(idx, "lng", e.target.value)}
-                    className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/20 focus:outline-none focus:border-indigo-500 font-semibold flex-1"
+                    className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/20 focus:outline-none focus:border-orange-500 font-semibold flex-1"
                     required
                   />
                   {stops.length > 1 && (
@@ -373,7 +373,7 @@ export default function ShuttlesPage() {
             <button
               type="submit"
               disabled={isOptimizing}
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider shadow-md hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] transition-all"
+              className="w-full py-3 bg-orange-600 hover:bg-indigo-700 disabled:bg-slate-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider shadow-md hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] transition-all"
             >
               {isOptimizing ? "Optimizing..." : t("optimizeRoute")}
             </button>
@@ -407,7 +407,7 @@ export default function ShuttlesPage() {
                 <div className="space-y-3.5 pl-1.5">
                   {optimizerResult.legs.map((leg, idx) => (
                     <div key={idx} className="relative flex gap-3.5 items-start text-xs border-l border-white/10 pl-4 last:border-0 pb-1">
-                      <div className="absolute -left-1.5 top-0.5 h-3 w-3 bg-indigo-500 rounded-full border-2 border-slate-900" />
+                      <div className="absolute -left-1.5 top-0.5 h-3 w-3 bg-orange-500 rounded-full border-2 border-slate-900" />
                       <div className="min-w-0">
                         <p className="font-bold text-slate-200">Leg #{idx + 1}</p>
                         <p className="text-[10px] text-slate-400 font-semibold mt-0.5">

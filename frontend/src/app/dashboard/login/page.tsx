@@ -51,17 +51,17 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-[#071133] p-4 text-white">
       {/* Background decoration elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
-        <div className="absolute -top-40 -left-40 h-96 w-96 rounded-full bg-blue-600 blur-3xl" />
-        <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-indigo-600 blur-3xl" />
+        <div className="absolute -top-40 -left-40 h-96 w-96 rounded-full bg-orange-600 blur-3xl" />
+        <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-orange-600 blur-3xl" />
       </div>
 
-      <div className="relative w-full max-w-md bg-[#0D1B4B]/80 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl space-y-6">
+      <div className="relative w-full max-w-md bg-[#ff6b00]/80 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex p-3 bg-blue-500/10 border border-blue-500/25 rounded-2xl text-blue-400 mb-2">
+          <div className="inline-flex p-3 bg-orange-500/10 border border-orange-500/25 rounded-2xl text-orange-400 mb-2">
             <Shield className="h-8 w-8" />
           </div>
-          <h1 className="text-2xl font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-200">
+          <h1 className="text-2xl font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-indigo-200">
             CampNav Portal
           </h1>
           <p className="text-xs text-white/50 font-bold uppercase tracking-wider">
@@ -80,7 +80,7 @@ export default function LoginPage() {
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-blue-200 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-orange-200 uppercase tracking-wider mb-2">
               {t("email")}
             </label>
             <div className="relative">
@@ -90,7 +90,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@campnav.local"
-                className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-blue-400 font-semibold"
+                className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-orange-400 font-semibold"
                 required
                 disabled={loading}
               />
@@ -98,7 +98,7 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-blue-200 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-orange-200 uppercase tracking-wider mb-2">
               {t("password")}
             </label>
             <div className="relative">
@@ -108,7 +108,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-blue-400 font-semibold"
+                className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-orange-400 font-semibold"
                 required
                 disabled={loading}
               />
@@ -118,7 +118,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 py-3.5 bg-blue-500 hover:bg-blue-600 disabled:bg-slate-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 active:scale-[0.99] transition-all"
+            className="w-full flex items-center justify-center gap-2 py-3.5 bg-orange-500 hover:bg-orange-600 disabled:bg-slate-700 text-white rounded-xl font-bold shadow-lg shadow-orange-500/20 active:scale-[0.99] transition-all"
           >
             {loading ? (
               <>
@@ -135,7 +135,7 @@ export default function LoginPage() {
         <div className="pt-4 border-t border-white/5 text-center">
           <Link
             href="/app"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-400 hover:text-blue-300 uppercase tracking-widest transition-all hover:gap-2"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-orange-400 hover:text-orange-300 uppercase tracking-widest transition-all hover:gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>{t("backToHome")}</span>

@@ -138,7 +138,7 @@ export default function LostPersonsPage() {
   const getSourceBadge = (source: string) => {
     switch (source) {
       case "app":
-        return "bg-blue-600/20 text-blue-400 border border-blue-500/30";
+        return "bg-orange-600/20 text-orange-400 border border-orange-500/30";
       case "ussd":
         return "bg-purple-600/20 text-purple-400 border border-purple-500/30";
       default:
@@ -173,19 +173,19 @@ export default function LostPersonsPage() {
       </div>
 
       {/* Filters bar */}
-      <div className="flex flex-col sm:flex-row gap-3 bg-[#0D1B4B]/35 border border-white/5 p-4 rounded-2xl shadow-lg">
+      <div className="flex flex-col sm:flex-row gap-3 bg-[#ff6b00]/35 border border-white/5 p-4 rounded-2xl shadow-lg">
         <input
           type="text"
           placeholder="Filter description, person name or reporter..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/35 focus:outline-none focus:border-blue-500 font-medium"
+          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/35 focus:outline-none focus:border-orange-500 font-medium"
         />
 
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 font-bold uppercase tracking-wider"
+          className="bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500 font-bold uppercase tracking-wider"
         >
           <option value="all">All Statuses</option>
           <option value="open">Open</option>
@@ -200,7 +200,7 @@ export default function LostPersonsPage() {
           {searchedReports.map((report) => (
             <div
               key={report.id}
-              className="bg-[#0D1B4B]/20 border border-white/5 rounded-3xl p-5 shadow-xl flex flex-col justify-between space-y-4 hover:border-white/10 transition-colors animate-in fade-in duration-200"
+              className="bg-[#ff6b00]/20 border border-white/5 rounded-3xl p-5 shadow-xl flex flex-col justify-between space-y-4 hover:border-white/10 transition-colors animate-in fade-in duration-200"
             >
               {/* Header: source, timestamp, status */}
               <div className="flex items-center justify-between">
@@ -229,7 +229,7 @@ export default function LostPersonsPage() {
               <div className="space-y-1">
                 {report.name && (
                   <h3 className="text-base font-extrabold text-white flex items-center gap-1.5">
-                    <User className="h-4.5 w-4.5 text-blue-400" />
+                    <User className="h-4.5 w-4.5 text-orange-400" />
                     <span>{report.name}</span>
                   </h3>
                 )}
@@ -250,7 +250,7 @@ export default function LostPersonsPage() {
                 )}
                 {report.lat && report.lng && (
                   <div className="flex items-center gap-2 font-mono text-[10px] text-slate-500">
-                    <Navigation className="h-4 w-4 text-blue-400 shrink-0" />
+                    <Navigation className="h-4 w-4 text-orange-400 shrink-0" />
                     <span>GPS: {report.lat.toFixed(5)}, {report.lng.toFixed(5)}</span>
                   </div>
                 )}
@@ -271,9 +271,9 @@ export default function LostPersonsPage() {
           ))}
         </div>
       ) : (
-        <div className="bg-[#0D1B4B]/20 border border-white/5 rounded-3xl py-20 flex items-center justify-center text-slate-500 font-semibold">
+        <div className="bg-[#ff6b00]/20 border border-white/5 rounded-3xl py-20 flex items-center justify-center text-slate-500 font-semibold">
           {loading ? (
-            <div className="h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <div className="h-8 w-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
           ) : (
             "No reports match the active filters"
           )}
@@ -285,7 +285,7 @@ export default function LostPersonsPage() {
         <div className="flex justify-center pt-4">
           <button
             onClick={handleLoadMore}
-            className="flex items-center gap-2 px-6 py-3 bg-[#0D1B4B]/50 hover:bg-[#0D1B4B] border border-white/10 rounded-xl text-xs font-extrabold uppercase tracking-wider text-slate-200 transition-all active:scale-[0.98]"
+            className="flex items-center gap-2 px-6 py-3 bg-[#ff6b00]/50 hover:bg-[#ff6b00] border border-white/10 rounded-xl text-xs font-extrabold uppercase tracking-wider text-slate-200 transition-all active:scale-[0.98]"
           >
             <Layers className="h-4 w-4" />
             <span>Load More Reports</span>

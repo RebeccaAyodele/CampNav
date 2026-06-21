@@ -204,7 +204,7 @@ export default function LostPersonReportPage() {
               value={formData.description}
               onChange={handleChange}
               placeholder={t("nameOrDescriptionPlaceholder")}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0D1B4B]/20 text-slate-800 font-medium"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#ff6b00]/20 text-slate-800 font-medium"
               rows={3}
               required
             />
@@ -222,7 +222,7 @@ export default function LostPersonReportPage() {
               value={formData.name}
               onChange={handleChange}
               placeholder={t("personNamePlaceholder")}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0D1B4B]/20 text-slate-800 font-medium"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#ff6b00]/20 text-slate-800 font-medium"
             />
           </div>
 
@@ -238,7 +238,7 @@ export default function LostPersonReportPage() {
               value={formData.lastSeenLocation}
               onChange={handleChange}
               placeholder={t("lastSeenLocationPlaceholder")}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0D1B4B]/20 text-slate-800 font-medium"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#ff6b00]/20 text-slate-800 font-medium"
             />
           </div>
 
@@ -287,7 +287,7 @@ export default function LostPersonReportPage() {
               value={formData.reporterName}
               onChange={handleChange}
               placeholder={t("reporterNamePlaceholder")}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0D1B4B]/20 text-slate-800 font-medium"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#ff6b00]/20 text-slate-800 font-medium"
             />
           </div>
 
@@ -303,7 +303,7 @@ export default function LostPersonReportPage() {
               value={formData.reporterPhone}
               onChange={handleChange}
               placeholder={t("reporterPhonePlaceholder")}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0D1B4B]/20 text-slate-800 font-medium"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#ff6b00]/20 text-slate-800 font-medium"
               required
             />
           </div>
@@ -312,7 +312,7 @@ export default function LostPersonReportPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full flex items-center justify-center gap-2 px-5 py-4 bg-[#0D1B4B] hover:bg-indigo-900 text-white rounded-xl font-bold shadow-lg shadow-[#0D1B4B]/25 transition-all active:scale-[0.99] disabled:bg-slate-300 disabled:shadow-none"
+            className="w-full flex items-center justify-center gap-2 px-5 py-4 bg-[#ff6b00] hover:bg-orange-900 text-white rounded-xl font-bold shadow-lg shadow-[#ff6b00]/25 transition-all active:scale-[0.99] disabled:bg-slate-300 disabled:shadow-none"
           >
             {isSubmitting ? (
               <RefreshCw className="h-5 w-5 animate-spin" />

@@ -164,7 +164,7 @@ export default function DashboardPage() {
         existing.setLngLat([lng, lat]);
       } else {
         const el = document.createElement("div");
-        el.className = "flex items-center justify-center h-8 w-8 bg-blue-600 text-white rounded-full border-2 border-white shadow-lg text-sm cursor-pointer hover:bg-blue-700 transition-colors";
+        el.className = "flex items-center justify-center h-8 w-8 bg-orange-600 text-white rounded-full border-2 border-white shadow-lg text-sm cursor-pointer hover:bg-blue-700 transition-colors";
         el.innerText = "🚌";
 
         const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`
@@ -298,8 +298,8 @@ export default function DashboardPage() {
             {t("dashboardSubtitle")}
           </p>
         </div>
-        <div className="flex items-center gap-1 text-xs font-bold text-blue-400 bg-blue-500/10 border border-blue-500/25 px-3.5 py-1.5 rounded-full">
-          <Radio className="h-4 w-4 animate-pulse text-blue-400" />
+        <div className="flex items-center gap-1 text-xs font-bold text-orange-400 bg-orange-500/10 border border-orange-500/25 px-3.5 py-1.5 rounded-full">
+          <Radio className="h-4 w-4 animate-pulse text-orange-400" />
           <span>LIVE TRACKING</span>
         </div>
       </div>
@@ -307,18 +307,18 @@ export default function DashboardPage() {
       {/* KPI Cards */}
       <div className="shrink-0 grid gap-4 grid-cols-1 sm:grid-cols-3">
         {/* Active Shuttles Card */}
-        <div className="bg-[#0D1B4B]/35 border border-white/5 rounded-2xl p-5 shadow-lg flex items-center justify-between">
+        <div className="bg-[#ff6b00]/35 border border-white/5 rounded-2xl p-5 shadow-lg flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t("activeShuttles")}</p>
             <p className="text-3xl font-black text-white">{stats.activeShuttles}</p>
           </div>
-          <div className="p-3.5 bg-blue-500/10 rounded-xl text-blue-400">
+          <div className="p-3.5 bg-orange-500/10 rounded-xl text-orange-400">
             <Bus className="h-6 w-6" />
           </div>
         </div>
 
         {/* Open Cases Card */}
-        <div className="bg-[#0D1B4B]/35 border border-white/5 rounded-2xl p-5 shadow-lg flex items-center justify-between">
+        <div className="bg-[#ff6b00]/35 border border-white/5 rounded-2xl p-5 shadow-lg flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t("lostPersonCases")}</p>
             <p className="text-3xl font-black text-rose-400">{stats.openLostPersons}</p>
@@ -329,7 +329,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Check-ins Card */}
-        <div className="bg-[#0D1B4B]/35 border border-white/5 rounded-2xl p-5 shadow-lg flex items-center justify-between">
+        <div className="bg-[#ff6b00]/35 border border-white/5 rounded-2xl p-5 shadow-lg flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t("totalCheckins")}</p>
             <p className="text-3xl font-black text-emerald-400">{stats.totalCheckins}</p>
@@ -343,7 +343,7 @@ export default function DashboardPage() {
       {/* Main Grid View */}
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Live Control Map */}
-        <div className="lg:col-span-2 bg-[#0D1B4B]/20 border border-white/5 rounded-3xl overflow-hidden shadow-2xl relative min-h-[350px]">
+        <div className="lg:col-span-2 bg-[#ff6b00]/20 border border-white/5 rounded-3xl overflow-hidden shadow-2xl relative min-h-[350px]">
           <div className="absolute top-4 left-4 z-10 bg-[#071133]/90 backdrop-blur border border-white/10 rounded-xl px-4 py-2 text-xs font-bold">
             Live Field Operations Map
           </div>
@@ -351,9 +351,9 @@ export default function DashboardPage() {
         </div>
 
         {/* Live Log Activity Feed */}
-        <div className="bg-[#0D1B4B]/20 border border-white/5 rounded-3xl p-5 shadow-2xl flex flex-col min-h-[300px]">
+        <div className="bg-[#ff6b00]/20 border border-white/5 rounded-3xl p-5 shadow-2xl flex flex-col min-h-[300px]">
           <h3 className="font-extrabold text-sm text-slate-300 mb-4 tracking-wide uppercase shrink-0 flex items-center gap-2">
-            <Radio className="h-4.5 w-4.5 text-blue-400 animate-pulse" />
+            <Radio className="h-4.5 w-4.5 text-orange-400 animate-pulse" />
             <span>{t("activityLog")}</span>
           </h3>
 
@@ -363,7 +363,7 @@ export default function DashboardPage() {
                 const isCheckin = log.type === "shuttle_checkin";
                 return (
                   <div key={idx} className="flex gap-3 text-xs items-start p-3 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 transition-colors">
-                    <span className={`text-base shrink-0 ${isCheckin ? "text-blue-400" : "text-rose-400"}`}>
+                    <span className={`text-base shrink-0 ${isCheckin ? "text-orange-400" : "text-rose-400"}`}>
                       {isCheckin ? "🚌" : "👤"}
                     </span>
                     <div className="min-w-0">
@@ -388,7 +388,7 @@ export default function DashboardPage() {
       <div className="shrink-0 grid gap-4 grid-cols-1 sm:grid-cols-2">
         <button
           onClick={() => router.push("/dashboard/shuttles")}
-          className="flex items-center justify-center gap-2 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold shadow-lg shadow-blue-600/10 active:scale-[0.99] transition-all"
+          className="flex items-center justify-center gap-2 py-4 bg-orange-600 hover:bg-blue-700 text-white rounded-2xl font-bold shadow-lg shadow-orange-600/10 active:scale-[0.99] transition-all"
         >
           <Bus className="h-5 w-5" />
           <span>{t("viewShuttles")}</span>

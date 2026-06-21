@@ -16,10 +16,10 @@ export default function DriverLayout({ children }: { children: React.ReactNode }
   const { mode, queueCount } = useNetworkStatus();
 
   return (
-    <div className="flex flex-col h-screen bg-[#0D1B4B] text-white antialiased overflow-hidden">
+    <div className="flex flex-col h-screen bg-[#ff6b00] text-white antialiased overflow-hidden">
       {/* Simple Header */}
       <header className="border-b border-white/10 bg-[#071133] px-5 py-4 shrink-0 flex items-center justify-between shadow-lg z-10">
-        <h1 className="text-base font-extrabold tracking-wide text-blue-200">
+        <h1 className="text-base font-extrabold tracking-wide text-orange-200">
           {t("driverCheckin")}
         </h1>
         
@@ -56,7 +56,7 @@ export default function DriverLayout({ children }: { children: React.ReactNode }
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 min-h-0 overflow-y-auto relative bg-[#0D1B4B]">
+      <main className="flex-1 min-h-0 overflow-y-auto relative bg-[#ff6b00]">
         {children}
       </main>
     </div>

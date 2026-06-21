@@ -14,8 +14,7 @@ import { useTranslation } from "react-i18next";
 import { ArrowLeft, Volume2, VolumeX, CheckCircle, Navigation, MapPin } from "lucide-react";
 
 import { useNetworkStatus, useMounted } from "@/hooks";
-import { apiClient } from "@/lib/api";
-import { findOfflineRoute, type RouteResult } from "@/lib/offlineRouter";
+import { findOfflineRoute, haversineDistance, type RouteResult } from "@/lib/offlineRouter";
 import { speakDirections, isSpeechSynthesisSupported } from "@/lib/speechEngine";
 
 function DirectionsContent() {
@@ -73,30 +72,116 @@ function DirectionsContent() {
       const origin = { lat: originLat, lng: originLng };
       const destination = { lat: dlat, lng: dlng };
 
-      if (mode === "online") {
-        try {
-          const response = await apiClient.post<{ success: boolean; data: any }>(
-            "/api/route/directions",
-            { origin, destination, mode: "walking" }
-          );
-          if (response.success && response.data) {
-            setRoute({
-              routeId: response.data.routeId,
-              mode: response.data.mode || "walking",
-              distanceMeters: response.data.distanceMeters,
-              durationSeconds: response.data.durationSeconds,
-              waypoints: response.data.waypoints,
-              steps: response.data.steps,
-              isStraightLine: response.data.routeId === "straight-line",
+      // Calculate distance to Redemption City center
+      const distToCamp = haversineDistance([originLng, originLat], [3.4588, 6.8097]);
+
+      if (distToCamp > 3000) {
+        // --- HYBRID ROUTING ---
+        // 1. External leg: Origin to Main Gate
+        let externalRoute: RouteResult | null = null;
+        if (mode === "online") {
+          try {
+            const response = await fetch("/api/directions", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                origin,
+                destination: { lat: 6.8199, lng: 3.4564 },
+                mode: "driving"
+              })
             });
-          } else {
+            const resJson = await response.json();
+            if (resJson.success && resJson.data) {
+              externalRoute = resJson.data;
+            }
+          } catch (err) {
+            console.warn("External API routing failed, falling back to straight-line:", err);
+          }
+        }
+
+        // If online fetch failed or offline, generate straight-line to Main Gate
+        if (!externalRoute) {
+          const distance = Math.round(haversineDistance([originLng, originLat], [3.4564, 6.8199]));
+          externalRoute = {
+            routeId: "external-fallback",
+            mode: "driving",
+            distanceMeters: distance,
+            durationSeconds: Math.round(distance / 13.89), // driving speed ~ 50 km/h
+            waypoints: [
+              { lat: originLat, lng: originLng },
+              { lat: 6.8199, lng: 3.4564 }
+            ],
+            steps: [
+              {
+                instruction: `Drive towards Redemption City Main Gate for ${distance}m`,
+                distance_meters: distance
+              }
+            ],
+            isStraightLine: true
+          };
+        }
+
+        // 2. Internal leg: Main Gate to destination
+        const internalRoute = findOfflineRoute(
+          { lat: 6.8199, lng: 3.4564 },
+          destination,
+          "Main Gate",
+          destinationName
+        );
+
+        // 3. Merge routes
+        const mergedWaypoints = [...externalRoute.waypoints, ...internalRoute.waypoints];
+        const mergedSteps = [
+          ...externalRoute.steps,
+          {
+            instruction: "Enter Redemption City Main Gate",
+            distance_meters: 0
+          },
+          ...internalRoute.steps
+        ];
+
+        setRoute({
+          routeId: `hybrid-${Date.now()}`,
+          mode: "hybrid",
+          distanceMeters: externalRoute.distanceMeters + internalRoute.distanceMeters,
+          durationSeconds: externalRoute.durationSeconds + internalRoute.durationSeconds,
+          waypoints: mergedWaypoints,
+          steps: mergedSteps,
+          isStraightLine: externalRoute.isStraightLine || internalRoute.isStraightLine
+        });
+      } else {
+        // --- LOCAL ROUTING ---
+        if (mode === "online") {
+          try {
+            const response = await fetch("/api/directions", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                origin,
+                destination,
+                mode: "walking"
+              })
+            });
+            const resJson = await response.json();
+            if (resJson.success && resJson.data) {
+              setRoute({
+                routeId: resJson.data.routeId,
+                mode: resJson.data.mode || "walking",
+                distanceMeters: resJson.data.distanceMeters,
+                durationSeconds: resJson.data.durationSeconds,
+                waypoints: resJson.data.waypoints,
+                steps: resJson.data.steps,
+                isStraightLine: resJson.data.routeId === "straight-line",
+              });
+            } else {
+              calculateOfflineFallback(origin, destination);
+            }
+          } catch (err) {
             calculateOfflineFallback(origin, destination);
           }
-        } catch (err) {
+        } else {
           calculateOfflineFallback(origin, destination);
         }
-      } else {
-        calculateOfflineFallback(origin, destination);
       }
       setLoading(false);
     }

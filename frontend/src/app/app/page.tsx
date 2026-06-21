@@ -9,6 +9,7 @@
 import React, { useState, useEffect, useRef, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import Fuse from "fuse.js";
 import { useTranslation } from "react-i18next";
 import { Search, Navigation, LocateFixed, Mic, AlertCircle, MapPin, X, ArrowRight } from "lucide-react";

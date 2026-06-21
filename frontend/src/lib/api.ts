@@ -74,25 +74,44 @@ class APIClient {
 
     let userMessage = "An error occurred. Please try again.";
 
-    if (!navigator.onLine) {
+    if (!navigator.onLine || !error.response) {
+      // No response — offline or backend unavailable; offline fallback will handle it
       userMessage = "You are currently offline.";
+      logger.warn("API unavailable (offline or backend not running)", {
+        url: error.config?.url,
+      });
     } else if (status === 401 || status === 403) {
       userMessage = "You do not have permission to perform this action.";
-      // Trigger logout logic here if needed
+      logger.error("API Auth Error", {
+        status,
+        message: data?.message || error.message,
+        url: error.config?.url,
+      });
     } else if (status === 404) {
+      // 404 is expected when backend endpoints aren't available — offline fallback handles it
       userMessage = "The requested resource was not found.";
+      logger.warn("API 404 (falling back to offline mode)", {
+        url: error.config?.url,
+      });
     } else if (status === 500) {
       userMessage = "Server error. Please try again later.";
+      logger.error("API Server Error", {
+        status,
+        message: data?.message || error.message,
+        url: error.config?.url,
+        userMessage,
+      });
     } else if (error.code === "ECONNABORTED") {
       userMessage = "Request timeout. Please check your connection.";
+      logger.warn("API timeout", { url: error.config?.url });
+    } else {
+      logger.error("API Error", {
+        status,
+        message: data?.message || error.message,
+        url: error.config?.url,
+        userMessage,
+      });
     }
-
-    logger.error("API Error", {
-      status,
-      message: data?.message || error.message,
-      url: error.config?.url,
-      userMessage,
-    });
 
     const customError = new Error(userMessage);
     return Promise.reject(customError);

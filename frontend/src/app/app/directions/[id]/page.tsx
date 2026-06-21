@@ -9,6 +9,7 @@
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, Volume2, VolumeX, CheckCircle, Navigation, MapPin } from "lucide-react";
 

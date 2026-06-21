@@ -143,101 +143,110 @@ function MapContent() {
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
-    const map = new maplibregl.Map({
-      container: mapContainerRef.current,
-      style: {
-        version: 8,
-        sources: {
-          osm: {
-            type: "raster",
-            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-            tileSize: 256,
-            attribution: "© OpenStreetMap contributors",
+    let map: maplibregl.Map | null = null;
+    try {
+      map = new maplibregl.Map({
+        container: mapContainerRef.current,
+        style: {
+          version: 8,
+          sources: {
+            osm: {
+              type: "raster",
+              tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+              tileSize: 256,
+              attribution: "© OpenStreetMap contributors",
+            },
           },
-        },
-        layers: [
-          {
-            id: "osm-layer",
-            type: "raster",
-            source: "osm",
-            minzoom: 0,
-            maxzoom: 19,
-          },
-        ],
-      },
-      center: DEFAULT_CENTER,
-      zoom: DEFAULT_ZOOM,
-      attributionControl: false,
-    });
-
-    mapRef.current = map;
-
-    map.on("load", () => {
-      setMapLoaded(true);
-
-      // Add source for POIs
-      map.addSource("pois", {
-        type: "geojson",
-        data: {
-          type: "FeatureCollection",
-          features: getPOIs() as any,
-        },
-      });
-
-      // Add circle layer with colors mapped to category
-      const colorMatchExpression: any[] = ["match", ["get", "category"]];
-      Object.entries(CATEGORY_COLORS).forEach(([cat, color]) => {
-        colorMatchExpression.push(cat, color);
-      });
-      colorMatchExpression.push("#64748B"); // Fallback color
-
-      map.addLayer({
-        id: "poi-circles",
-        type: "circle",
-        source: "pois",
-        paint: {
-          "circle-color": colorMatchExpression as any,
-          "circle-radius": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            12,
-            5,
-            16,
-            10,
+          layers: [
+            {
+              id: "osm-layer",
+              type: "raster",
+              source: "osm",
+              minzoom: 0,
+              maxzoom: 19,
+            },
           ],
-          "circle-stroke-width": 1.5,
-          "circle-stroke-color": "rgba(255,255,255,0.35)",
-          "circle-opacity": 0.92,
         },
+        center: DEFAULT_CENTER,
+        zoom: DEFAULT_ZOOM,
+        attributionControl: false,
       });
 
-      // Interactive clicks on markers
-      map.on("click", "poi-circles", (e) => {
-        const feature = e.features?.[0];
-        if (feature) {
-          const props = feature.properties as any;
-          const coords = (feature.geometry as any).coordinates;
-          const poi: POIData = {
-            id: props.id,
-            name: props.name,
-            category: props.category || "services",
-            lat: coords[1],
-            lng: coords[0],
-            zone: props.zone || null,
-          };
-          handleSelectPOI(poi);
-        }
-      });
+      mapRef.current = map;
 
-      map.on("mouseenter", "poi-circles", () => {
-        map.getCanvas().style.cursor = "pointer";
-      });
+      map.on("load", () => {
+        if (!map) return;
+        setMapLoaded(true);
 
-      map.on("mouseleave", "poi-circles", () => {
-        map.getCanvas().style.cursor = "";
+        // Add source for POIs
+        map.addSource("pois", {
+          type: "geojson",
+          data: {
+            type: "FeatureCollection",
+            features: getPOIs() as any,
+          },
+        });
+
+        // Add circle layer with colors mapped to category
+        const colorMatchExpression: any[] = ["match", ["get", "category"]];
+        Object.entries(CATEGORY_COLORS).forEach(([cat, color]) => {
+          colorMatchExpression.push(cat, color);
+        });
+        colorMatchExpression.push("#64748B"); // Fallback color
+
+        map.addLayer({
+          id: "poi-circles",
+          type: "circle",
+          source: "pois",
+          paint: {
+            "circle-color": colorMatchExpression as any,
+            "circle-radius": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              12,
+              5,
+              16,
+              10,
+            ],
+            "circle-stroke-width": 1.5,
+            "circle-stroke-color": "rgba(255,255,255,0.35)",
+            "circle-opacity": 0.92,
+          },
+        });
+
+        // Interactive clicks on markers
+        map.on("click", "poi-circles", (e) => {
+          if (!map) return;
+          const feature = e.features?.[0];
+          if (feature) {
+            const props = feature.properties as any;
+            const coords = (feature.geometry as any).coordinates;
+            const poi: POIData = {
+              id: props.id,
+              name: props.name,
+              category: props.category || "services",
+              lat: coords[1],
+              lng: coords[0],
+              zone: props.zone || null,
+            };
+            handleSelectPOI(poi);
+          }
+        });
+
+        map.on("mouseenter", "poi-circles", () => {
+          if (!map) return;
+          map.getCanvas().style.cursor = "pointer";
+        });
+
+        map.on("mouseleave", "poi-circles", () => {
+          if (!map) return;
+          map.getCanvas().style.cursor = "";
+        });
       });
-    });
+    } catch (err) {
+      console.error("MapLibre GL failed to initialize in main screen:", err);
+    }
 
     // Try to get user location immediately
     if (navigator.geolocation) {
@@ -252,7 +261,13 @@ function MapContent() {
     }
 
     return () => {
-      map.remove();
+      if (map) {
+        try {
+          map.remove();
+        } catch (e) {
+          console.warn("Map remove failed in main screen:", e);
+        }
+      }
       mapRef.current = null;
     };
   }, []);

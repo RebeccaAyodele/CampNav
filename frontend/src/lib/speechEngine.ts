@@ -93,29 +93,42 @@ export function speakText(
   language: string,
   onEnd?: () => void
 ): { cancel: () => void } | null {
-  if (typeof window === "undefined" || !window.speechSynthesis) {
+  if (
+    typeof window === "undefined" ||
+    !window.speechSynthesis ||
+    !window.SpeechSynthesisUtterance
+  ) {
     return null;
   }
 
-  // Cancel any ongoing speech
-  window.speechSynthesis.cancel();
+  try {
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
 
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = speechLanguageCodes[language] || "en-US";
-  utterance.rate = 0.9;
-  utterance.pitch = 1;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = speechLanguageCodes[language] || "en-US";
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
 
-  if (onEnd) {
-    utterance.onend = onEnd;
+    if (onEnd) {
+      utterance.onend = onEnd;
+    }
+
+    window.speechSynthesis.speak(utterance);
+
+    return {
+      cancel: () => {
+        try {
+          window.speechSynthesis?.cancel();
+        } catch (e) {
+          console.warn("speechSynthesis.cancel failed:", e);
+        }
+      },
+    };
+  } catch (error) {
+    console.error("speakText failed to execute:", error);
+    return null;
   }
-
-  window.speechSynthesis.speak(utterance);
-
-  return {
-    cancel: () => {
-      window.speechSynthesis.cancel();
-    },
-  };
 }
 
 /** Speak an array of step instructions sequentially */
@@ -133,10 +146,16 @@ export function speakDirections(
       return;
     }
 
-    speakText(steps[currentIndex], language, () => {
+    const instance = speakText(steps[currentIndex], language, () => {
       currentIndex++;
       speakNext();
     });
+
+    // If speech engine failed to initialize, skip this step or progress automatically
+    if (!instance) {
+      currentIndex++;
+      speakNext();
+    }
   }
 
   speakNext();
@@ -144,7 +163,11 @@ export function speakDirections(
   return {
     cancel: () => {
       cancelled = true;
-      window.speechSynthesis?.cancel();
+      try {
+        window.speechSynthesis?.cancel();
+      } catch (e) {
+        console.warn("speechSynthesis.cancel failed in speakDirections:", e);
+      }
     },
   };
 }
@@ -152,5 +175,5 @@ export function speakDirections(
 /** Check if speech synthesis is supported */
 export function isSpeechSynthesisSupported(): boolean {
   if (typeof window === "undefined") return false;
-  return !!window.speechSynthesis;
+  return !!(window.speechSynthesis && window.SpeechSynthesisUtterance);
 }

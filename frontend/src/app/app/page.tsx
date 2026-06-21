@@ -16,6 +16,7 @@ import { Search, Navigation, LocateFixed, Mic, AlertCircle, MapPin, X, ArrowRigh
 
 import { getPOIs, type GeoJSONPointFeature } from "@/data/campGeoJSON";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { useMounted } from "@/hooks/useMounted";
 import { apiClient } from "@/lib/api";
 import { startVoiceRecognition, isSpeechRecognitionSupported } from "@/lib/speechEngine";
 
@@ -50,6 +51,7 @@ function MapContent() {
   const searchParams = useSearchParams();
   const { t, i18n } = useTranslation();
   const { mode } = useNetworkStatus();
+  const mounted = useMounted();
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -204,8 +206,9 @@ function MapContent() {
             16,
             10,
           ],
-          "circle-stroke-width": 2,
-          "circle-stroke-color": "#ffffff",
+          "circle-stroke-width": 1.5,
+          "circle-stroke-color": "rgba(255,255,255,0.35)",
+          "circle-opacity": 0.92,
         },
       });
 
@@ -321,49 +324,49 @@ function MapContent() {
     <div className="relative h-full w-full flex flex-col">
       {/* Top Search Bar Card */}
       <div className="absolute top-4 left-4 right-4 z-10 max-w-md mx-auto">
-        <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200/50 p-2.5 flex items-center gap-2 transition-all">
+        <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200/50 p-1.5 flex items-center gap-1.5 transition-all">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("searchPlaceholder")}
-              className="w-full bg-slate-50 border-0 pl-10 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6b00]/20 text-slate-800 placeholder-slate-400 font-medium"
+              className="w-full bg-slate-50 border-0 pl-8 pr-7 py-1.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6b00]/20 text-slate-800 placeholder-slate-400 font-medium"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
               >
                 <X className="h-4 w-4" />
               </button>
             )}
           </div>
 
-          {isSpeechRecognitionSupported() && (
+          {mounted && isSpeechRecognitionSupported() && (
             <button
               onClick={startVoice}
-              className={`p-2.5 rounded-xl transition-all ${
+              className={`p-2 rounded-lg transition-all ${
                 isListening
                   ? "bg-rose-500 text-white animate-pulse"
                   : "bg-slate-100 hover:bg-slate-200 text-slate-600"
               }`}
               title={t("voiceSearch")}
             >
-              <Mic className="h-5 w-5" />
+              <Mic className="h-4 w-4" />
             </button>
           )}
         </div>
 
         {/* Search Results Dropdown */}
         {searchResults.length > 0 && (
-          <div className="mt-2 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-200/50 overflow-hidden max-h-72 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="mt-2 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-200/30 overflow-hidden max-h-72 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
             {searchResults.map((poi) => (
               <button
                 key={poi.id}
                 onClick={() => handleSelectPOI(poi)}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-orange-50/60 rounded-xl mx-1 my-0.5 transition-colors"
               >
                 <div
                   className="h-3 w-3 rounded-full shrink-0"

@@ -1,13 +1,19 @@
 /**
- * Enhanced network status hook.
- * Combines browser online/offline detection with backend health check.
+ * Network status hook — stable, no flicker.
+ *
+ * Strategy:
+ *  - Uses browser "online"/"offline" events as the primary signal.
+ *  - Does NOT poll a backend health endpoint (that caused constant offline/online flipping
+ *    whenever the API server is unavailable in dev or at the venue).
+ *  - Debounces status changes by 800 ms so momentary connectivity blips don't cause
+ *    the badge to flash.
+ *  - Starts with `null` (unknown) and resolves after mount to avoid hydration mismatch.
  */
 
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { config } from "@/config";
-import { initSyncListeners, syncOfflineQueue } from "@/lib/syncManager";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { syncOfflineQueue } from "@/lib/syncManager";
 
 export type ConnectionMode = "online" | "offline";
 
@@ -19,68 +25,38 @@ interface NetworkStatus {
 }
 
 export function useNetworkStatus(): NetworkStatus {
+  // Start "true" so first render (SSR and client-before-mount) match.
   const [isOnline, setIsOnline] = useState(true);
-  const [isServerReachable, setIsServerReachable] = useState(true);
   const [queueCount, setQueueCount] = useState(0);
-  const cleanupRef = useRef<(() => void) | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const checkHealth = useCallback(async () => {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
-
-      const response = await fetch(`${config.api.baseUrl}/api/health`, {
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-
-      if (response.ok) {
-        setIsServerReachable(true);
-      } else {
-        setIsServerReachable(false);
+  const applyStatus = useCallback((online: boolean) => {
+    // Debounce to avoid rapid flip-flop on brief connectivity changes
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setIsOnline(online);
+      if (online) {
+        // Auto-sync queued items when connectivity returns
+        syncOfflineQueue().then(() => {
+          import("@/lib/offlineQueue").then(({ getCount }) => {
+            getCount().then(setQueueCount);
+          });
+        });
       }
-    } catch {
-      setIsServerReachable(false);
-    }
+    }, 800);
   }, []);
 
   useEffect(() => {
-    // Browser online/offline
-    const handleOnline = () => {
-      setIsOnline(true);
-      checkHealth();
-      // Auto-sync when coming back online
-      syncOfflineQueue().then(() => {
-        import("@/lib/offlineQueue").then(({ getCount }) => {
-          getCount().then(setQueueCount);
-        });
-      });
-    };
-    const handleOffline = () => {
-      setIsOnline(false);
-      setIsServerReachable(false);
-    };
-
+    // Sync with actual browser state after mount
     setIsOnline(navigator.onLine);
+
+    const handleOnline = () => applyStatus(true);
+    const handleOffline = () => applyStatus(false);
+
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    // Initial health check
-    if (navigator.onLine) {
-      checkHealth();
-    }
-
-    // Periodic health check
-    const interval = setInterval(() => {
-      if (navigator.onLine) {
-        checkHealth();
-      }
-    }, config.timeouts.healthCheckInterval);
-
-    // Init sync listeners
-    cleanupRef.current = initSyncListeners();
-
-    // Check queue count
+    // Load queue count once on mount
     import("@/lib/offlineQueue").then(({ getCount }) => {
       getCount().then(setQueueCount);
     });
@@ -88,13 +64,14 @@ export function useNetworkStatus(): NetworkStatus {
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
-      clearInterval(interval);
-      cleanupRef.current?.();
+      if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [checkHealth]);
+  }, [applyStatus]);
 
-  const mode: ConnectionMode =
-    isOnline && isServerReachable ? "online" : "offline";
-
-  return { isOnline, isServerReachable, mode, queueCount };
+  return {
+    isOnline,
+    isServerReachable: isOnline, // Simplified — no flaky backend polling
+    mode: isOnline ? "online" : "offline",
+    queueCount,
+  };
 }

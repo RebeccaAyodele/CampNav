@@ -67,15 +67,15 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white`}>
         {children}
 
-        {/* Service Worker Registration */}
+        {/* Service Worker Registration — runs in dev + production */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
+              if ("serviceWorker" in navigator) {
                 window.addEventListener("load", () => {
-                  navigator.serviceWorker.register("/sw.js").catch(err => {
-                    console.log("Service Worker registration failed:", err);
-                  });
+                  navigator.serviceWorker.register("/sw.js")
+                    .then(reg => console.log("[CampNav SW] registered:", reg.scope))
+                    .catch(err => console.warn("[CampNav SW] registration failed:", err));
                 });
               }
             `,

@@ -21,6 +21,16 @@ import { ROUTES } from "@/constants";
 export default function HomePage() {
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#f9f9fc] text-[#1a1c1e]">
+      {/* Redirect immediately if launched in PWA standalone/app mode */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+              window.location.href = '/app';
+            }
+          `,
+        }}
+      />
       <style>{`
         .campnav-reveal {
           animation: campnav-reveal 900ms ease-out both;

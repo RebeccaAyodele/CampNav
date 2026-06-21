@@ -2,7 +2,7 @@
   "name": "CampNav - Offline Navigation",
   "short_name": "CampNav",
   "description": "Offline-first navigation and logistics coordination for large-scale gatherings",
-  "start_url": "/",
+  "start_url": "/app",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",

@@ -57,7 +57,7 @@ export const config = {
 
   // ── WebSocket ──
   websocket: {
-    url: process.env.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001",
+    url:"https://campnav.onrender.com" || "http://localhost:3001",
   },
 } as const;
 

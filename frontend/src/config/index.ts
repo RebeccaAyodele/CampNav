@@ -7,7 +7,7 @@
 export const config = {
   // ── API Configuration ──
   api: {
-    baseUrl: process.env.NEXT_PUBLIC_API_URL || "https://campnav.onrender.com",
+    baseUrl: "https://campnav.onrender.com"//process.env.NEXT_PUBLIC_API_URL || "https://campnav.onrender.com",
     timeout: parseInt(process.env.NEXT_PUBLIC_API_TIMEOUT || "10000", 10),
   },
 

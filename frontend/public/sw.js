@@ -20,8 +20,8 @@ const STATIC_ASSETS = [
   "/",
   "/offline",
   "/app",
-  "/dashboard/login",
-  "/driver",
+  "/app/emergency",
+  "/app/report",
   "/favicon.ico",
 ];
 
@@ -67,13 +67,18 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip cross-origin requests
-  if (url.origin !== location.origin) {
+  // Handle GET requests only
+  if (request.method !== "GET") {
     return;
   }
 
-  // Handle GET requests
-  if (request.method !== "GET") {
+  // Skip cross-origin requests unless they are map tiles or fonts
+  if (url.origin !== location.origin) {
+    const isMapTile = url.hostname.includes("tile.openstreetmap.org") || url.hostname.includes("openstreetmap.org");
+    const isFontOrStyle = url.hostname.includes("fonts.googleapis.com") || url.hostname.includes("fonts.gstatic.com");
+    if (isMapTile || isFontOrStyle) {
+      event.respondWith(cacheFirstStrategy(request));
+    }
     return;
   }
 
@@ -100,9 +105,10 @@ async function cacheFirstStrategy(request) {
 
   try {
     const response = await fetch(request);
-    if (response.ok) {
+    // Support caching opaque (status 0) cross-origin assets like map tiles
+    if (response.ok || response.status === 0) {
       const responseToCache = response.clone();
-      cache.add(responseToCache);
+      cache.put(request, responseToCache);
     }
     return response;
   } catch (error) {

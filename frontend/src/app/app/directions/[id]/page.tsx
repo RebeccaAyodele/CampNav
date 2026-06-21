@@ -13,7 +13,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, Volume2, VolumeX, CheckCircle, Navigation, MapPin } from "lucide-react";
 
-import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { useNetworkStatus, useMounted } from "@/hooks";
 import { apiClient } from "@/lib/api";
 import { findOfflineRoute, type RouteResult } from "@/lib/offlineRouter";
 import { speakDirections, isSpeechSynthesisSupported } from "@/lib/speechEngine";
@@ -24,6 +24,7 @@ function DirectionsContent() {
   const searchParams = useSearchParams();
   const { t, i18n } = useTranslation();
   const { mode } = useNetworkStatus();
+  const mounted = useMounted();
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -118,89 +119,102 @@ function DirectionsContent() {
   useEffect(() => {
     if (!mapContainerRef.current || !route || route.waypoints.length === 0) return;
 
-    const map = new maplibregl.Map({
-      container: mapContainerRef.current,
-      style: {
-        version: 8,
-        sources: {
-          osm: {
-            type: "raster",
-            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-            tileSize: 256,
-            attribution: "© OpenStreetMap",
+    let map: maplibregl.Map | null = null;
+    try {
+      map = new maplibregl.Map({
+        container: mapContainerRef.current,
+        style: {
+          version: 8,
+          sources: {
+            osm: {
+              type: "raster",
+              tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+              tileSize: 256,
+              attribution: "© OpenStreetMap",
+            },
           },
+          layers: [
+            {
+              id: "osm-layer",
+              type: "raster",
+              source: "osm",
+            },
+          ],
         },
-        layers: [
-          {
-            id: "osm-layer",
-            type: "raster",
-            source: "osm",
-          },
-        ],
-      },
-      center: [route.waypoints[0].lng, route.waypoints[0].lat],
-      zoom: 15,
-      attributionControl: false,
-    });
-
-    mapRef.current = map;
-
-    map.on("load", () => {
-      // Add route GeoJSON source
-      map.addSource("route", {
-        type: "geojson",
-        data: {
-          type: "Feature",
-          properties: {},
-          geometry: {
-            type: "LineString",
-            coordinates: route.waypoints.map((w) => [w.lng, w.lat]),
-          },
-        },
+        center: [route.waypoints[0].lng, route.waypoints[0].lat],
+        zoom: 15,
+        attributionControl: false,
       });
 
-      // Add blue route line layer
-      map.addLayer({
-        id: "route-line",
-        type: "line",
-        source: "route",
-        layout: {
-          "line-join": "round",
-          "line-cap": "round",
-        },
-        paint: {
-          "line-color": "#3B82F6",
-          "line-width": 6,
-          "line-opacity": 0.85,
-        },
+      mapRef.current = map;
+
+      map.on("load", () => {
+        if (!map) return;
+        // Add route GeoJSON source
+        map.addSource("route", {
+          type: "geojson",
+          data: {
+            type: "Feature",
+            properties: {},
+            geometry: {
+              type: "LineString",
+              coordinates: route.waypoints.map((w) => [w.lng, w.lat]),
+            },
+          },
+        });
+
+        // Add blue route line layer
+        map.addLayer({
+          id: "route-line",
+          type: "line",
+          source: "route",
+          layout: {
+            "line-join": "round",
+            "line-cap": "round",
+          },
+          paint: {
+            "line-color": "#3B82F6",
+            "line-width": 6,
+            "line-opacity": 0.85,
+          },
+        });
+
+        // Add markers for origin and destination
+        const originCoords = [route.waypoints[0].lng, route.waypoints[0].lat] as [number, number];
+        const destCoords = [
+          route.waypoints[route.waypoints.length - 1].lng,
+          route.waypoints[route.waypoints.length - 1].lat,
+        ] as [number, number];
+
+        // Origin Marker (green dot)
+        const startEl = document.createElement("div");
+        startEl.className = "h-4 w-4 bg-emerald-500 border-2 border-white rounded-full shadow-md";
+        new maplibregl.Marker({ element: startEl }).setLngLat(originCoords).addTo(map);
+
+        // Destination Marker (red pin)
+        const endEl = document.createElement("div");
+        endEl.className = "text-rose-600 animate-bounce";
+        endEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8"><path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742c1.085-.77 2.874-2.205 3.86-4.582C18.57 14.88 19 12.879 19 10.5c0-4.693-3.693-8.5-8.5-8.5s-8.5 3.807-8.5 8.5c0 2.379.43 4.38 1.414 6.746 1.01 2.43 2.868 3.962 3.94 4.777a16.95 16.95 0 001.203.829zm1.71-12.851a1.25 1.25 0 11-2.5 0 1.25 1.25 0 012.5 0z" clip-rule="evenodd" /></svg>`;
+        new maplibregl.Marker({ element: endEl }).setLngLat(destCoords).addTo(map);
+
+        // Fit bounds to show the entire route
+        const bounds = new maplibregl.LngLatBounds();
+        route.waypoints.forEach((w) => bounds.extend([w.lng, w.lat]));
+        map.fitBounds(bounds, { padding: 48, maxZoom: 16 });
       });
-
-      // Add markers for origin and destination
-      const originCoords = [route.waypoints[0].lng, route.waypoints[0].lat] as [number, number];
-      const destCoords = [
-        route.waypoints[route.waypoints.length - 1].lng,
-        route.waypoints[route.waypoints.length - 1].lat,
-      ] as [number, number];
-
-      // Origin Marker (green dot)
-      const startEl = document.createElement("div");
-      startEl.className = "h-4 w-4 bg-emerald-500 border-2 border-white rounded-full shadow-md";
-      new maplibregl.Marker({ element: startEl }).setLngLat(originCoords).addTo(map);
-
-      // Destination Marker (red pin)
-      const endEl = document.createElement("div");
-      endEl.className = "text-rose-600 animate-bounce";
-      endEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8"><path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742c1.085-.77 2.874-2.205 3.86-4.582C18.57 14.88 19 12.879 19 10.5c0-4.693-3.693-8.5-8.5-8.5s-8.5 3.807-8.5 8.5c0 2.379.43 4.38 1.414 6.746 1.01 2.43 2.868 3.962 3.94 4.777a16.95 16.95 0 001.203.829zm1.71-12.851a1.25 1.25 0 11-2.5 0 1.25 1.25 0 012.5 0z" clip-rule="evenodd" /></svg>`;
-      new maplibregl.Marker({ element: endEl }).setLngLat(destCoords).addTo(map);
-
-      // Fit bounds to show the entire route
-      const bounds = new maplibregl.LngLatBounds();
-      route.waypoints.forEach((w) => bounds.extend([w.lng, w.lat]));
-      map.fitBounds(bounds, { padding: 48, maxZoom: 16 });
-    });
+    } catch (err) {
+      console.error("MapLibre GL failed to initialize:", err);
+      setError("Unable to load map. Your device might not support WebGL.");
+    }
 
     return () => {
-      map.remove();
+      if (map) {
+        try {
+          map.remove();
+        } catch (e) {
+          console.warn("Map remove failed:", e);
+        }
+      }
       mapRef.current = null;
     };
   }, [route]);
@@ -308,7 +322,7 @@ function DirectionsContent() {
             <p className="text-sm font-extrabold text-slate-800">{formatDuration(route.durationSeconds)}</p>
           </div>
 
-          {isSpeechSynthesisSupported() && (
+          {mounted && isSpeechSynthesisSupported() && (
             <button
               onClick={toggleSpeak}
               className={`p-2.5 rounded-full transition-all border ${

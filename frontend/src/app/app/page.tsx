@@ -16,6 +16,7 @@ import { Search, Navigation, LocateFixed, Mic, AlertCircle, MapPin, X, ArrowRigh
 
 import { getPOIs, type GeoJSONPointFeature } from "@/data/campGeoJSON";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { useMounted } from "@/hooks/useMounted";
 import { apiClient } from "@/lib/api";
 import { startVoiceRecognition, isSpeechRecognitionSupported } from "@/lib/speechEngine";
 
@@ -50,6 +51,7 @@ function MapContent() {
   const searchParams = useSearchParams();
   const { t, i18n } = useTranslation();
   const { mode } = useNetworkStatus();
+  const mounted = useMounted();
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -141,100 +143,110 @@ function MapContent() {
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
-    const map = new maplibregl.Map({
-      container: mapContainerRef.current,
-      style: {
-        version: 8,
-        sources: {
-          osm: {
-            type: "raster",
-            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-            tileSize: 256,
-            attribution: "© OpenStreetMap contributors",
+    let map: maplibregl.Map | null = null;
+    try {
+      map = new maplibregl.Map({
+        container: mapContainerRef.current,
+        style: {
+          version: 8,
+          sources: {
+            osm: {
+              type: "raster",
+              tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+              tileSize: 256,
+              attribution: "© OpenStreetMap contributors",
+            },
           },
-        },
-        layers: [
-          {
-            id: "osm-layer",
-            type: "raster",
-            source: "osm",
-            minzoom: 0,
-            maxzoom: 19,
-          },
-        ],
-      },
-      center: DEFAULT_CENTER,
-      zoom: DEFAULT_ZOOM,
-      attributionControl: false,
-    });
-
-    mapRef.current = map;
-
-    map.on("load", () => {
-      setMapLoaded(true);
-
-      // Add source for POIs
-      map.addSource("pois", {
-        type: "geojson",
-        data: {
-          type: "FeatureCollection",
-          features: getPOIs() as any,
-        },
-      });
-
-      // Add circle layer with colors mapped to category
-      const colorMatchExpression: any[] = ["match", ["get", "category"]];
-      Object.entries(CATEGORY_COLORS).forEach(([cat, color]) => {
-        colorMatchExpression.push(cat, color);
-      });
-      colorMatchExpression.push("#64748B"); // Fallback color
-
-      map.addLayer({
-        id: "poi-circles",
-        type: "circle",
-        source: "pois",
-        paint: {
-          "circle-color": colorMatchExpression as any,
-          "circle-radius": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            12,
-            5,
-            16,
-            10,
+          layers: [
+            {
+              id: "osm-layer",
+              type: "raster",
+              source: "osm",
+              minzoom: 0,
+              maxzoom: 19,
+            },
           ],
-          "circle-stroke-width": 2,
-          "circle-stroke-color": "#ffffff",
         },
+        center: DEFAULT_CENTER,
+        zoom: DEFAULT_ZOOM,
+        attributionControl: false,
       });
 
-      // Interactive clicks on markers
-      map.on("click", "poi-circles", (e) => {
-        const feature = e.features?.[0];
-        if (feature) {
-          const props = feature.properties as any;
-          const coords = (feature.geometry as any).coordinates;
-          const poi: POIData = {
-            id: props.id,
-            name: props.name,
-            category: props.category || "services",
-            lat: coords[1],
-            lng: coords[0],
-            zone: props.zone || null,
-          };
-          handleSelectPOI(poi);
-        }
-      });
+      mapRef.current = map;
 
-      map.on("mouseenter", "poi-circles", () => {
-        map.getCanvas().style.cursor = "pointer";
-      });
+      map.on("load", () => {
+        if (!map) return;
+        setMapLoaded(true);
 
-      map.on("mouseleave", "poi-circles", () => {
-        map.getCanvas().style.cursor = "";
+        // Add source for POIs
+        map.addSource("pois", {
+          type: "geojson",
+          data: {
+            type: "FeatureCollection",
+            features: getPOIs() as any,
+          },
+        });
+
+        // Add circle layer with colors mapped to category
+        const colorMatchExpression: any[] = ["match", ["get", "category"]];
+        Object.entries(CATEGORY_COLORS).forEach(([cat, color]) => {
+          colorMatchExpression.push(cat, color);
+        });
+        colorMatchExpression.push("#64748B"); // Fallback color
+
+        map.addLayer({
+          id: "poi-circles",
+          type: "circle",
+          source: "pois",
+          paint: {
+            "circle-color": colorMatchExpression as any,
+            "circle-radius": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              12,
+              5,
+              16,
+              10,
+            ],
+            "circle-stroke-width": 1.5,
+            "circle-stroke-color": "rgba(255,255,255,0.35)",
+            "circle-opacity": 0.92,
+          },
+        });
+
+        // Interactive clicks on markers
+        map.on("click", "poi-circles", (e) => {
+          if (!map) return;
+          const feature = e.features?.[0];
+          if (feature) {
+            const props = feature.properties as any;
+            const coords = (feature.geometry as any).coordinates;
+            const poi: POIData = {
+              id: props.id,
+              name: props.name,
+              category: props.category || "services",
+              lat: coords[1],
+              lng: coords[0],
+              zone: props.zone || null,
+            };
+            handleSelectPOI(poi);
+          }
+        });
+
+        map.on("mouseenter", "poi-circles", () => {
+          if (!map) return;
+          map.getCanvas().style.cursor = "pointer";
+        });
+
+        map.on("mouseleave", "poi-circles", () => {
+          if (!map) return;
+          map.getCanvas().style.cursor = "";
+        });
       });
-    });
+    } catch (err) {
+      console.error("MapLibre GL failed to initialize in main screen:", err);
+    }
 
     // Try to get user location immediately
     if (navigator.geolocation) {
@@ -249,7 +261,13 @@ function MapContent() {
     }
 
     return () => {
-      map.remove();
+      if (map) {
+        try {
+          map.remove();
+        } catch (e) {
+          console.warn("Map remove failed in main screen:", e);
+        }
+      }
       mapRef.current = null;
     };
   }, []);
@@ -321,49 +339,49 @@ function MapContent() {
     <div className="relative h-full w-full flex flex-col">
       {/* Top Search Bar Card */}
       <div className="absolute top-4 left-4 right-4 z-10 max-w-md mx-auto">
-        <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200/50 p-2.5 flex items-center gap-2 transition-all">
+        <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200/50 p-1.5 flex items-center gap-1.5 transition-all">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("searchPlaceholder")}
-              className="w-full bg-slate-50 border-0 pl-10 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6b00]/20 text-slate-800 placeholder-slate-400 font-medium"
+              className="w-full bg-slate-50 border-0 pl-8 pr-7 py-1.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6b00]/20 text-slate-800 placeholder-slate-400 font-medium"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
               >
                 <X className="h-4 w-4" />
               </button>
             )}
           </div>
 
-          {isSpeechRecognitionSupported() && (
+          {mounted && isSpeechRecognitionSupported() && (
             <button
               onClick={startVoice}
-              className={`p-2.5 rounded-xl transition-all ${
+              className={`p-2 rounded-lg transition-all ${
                 isListening
                   ? "bg-rose-500 text-white animate-pulse"
                   : "bg-slate-100 hover:bg-slate-200 text-slate-600"
               }`}
               title={t("voiceSearch")}
             >
-              <Mic className="h-5 w-5" />
+              <Mic className="h-4 w-4" />
             </button>
           )}
         </div>
 
         {/* Search Results Dropdown */}
         {searchResults.length > 0 && (
-          <div className="mt-2 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-200/50 overflow-hidden max-h-72 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="mt-2 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-200/30 overflow-hidden max-h-72 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
             {searchResults.map((poi) => (
               <button
                 key={poi.id}
                 onClick={() => handleSelectPOI(poi)}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-orange-50/60 rounded-xl mx-1 my-0.5 transition-colors"
               >
                 <div
                   className="h-3 w-3 rounded-full shrink-0"

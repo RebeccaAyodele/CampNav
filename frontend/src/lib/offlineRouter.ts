@@ -5,6 +5,25 @@
  */
 
 import { campGeoJSON, getPOIs, getRoutes, type GeoJSONPointFeature } from "@/data/campGeoJSON";
+import * as turf from "@turf/turf";
+import PathFinder from "geojson-path-finder";
+import campRoads from "@/data/campRoads.json";
+
+let pathFinderInstance: any = null;
+let campRoadsMultiLine: any = null;
+
+function getPathFinder() {
+  if (!pathFinderInstance) {
+    pathFinderInstance = new (PathFinder as any)(campRoads, { precision: 1e-5 });
+    
+    // Create a MultiLineString for snapping coordinates
+    const allLines = (campRoads.features as any[])
+      .filter((f) => f.geometry && f.geometry.type === "LineString")
+      .map((f) => f.geometry.coordinates);
+    campRoadsMultiLine = turf.multiLineString(allLines);
+  }
+  return { pf: pathFinderInstance, multiLine: campRoadsMultiLine };
+}
 
 export interface RouteResult {
   routeId: string;
@@ -257,7 +276,57 @@ export function findOfflineRoute(
     }
   }
 
-  // Straight-line fallback
+  // Graph-based offline fallback
+  return generateGraphFallback(origin, destination);
+}
+
+function generateGraphFallback(
+  origin: { lat: number; lng: number },
+  destination: { lat: number; lng: number }
+): RouteResult {
+  try {
+    const { pf, multiLine } = getPathFinder();
+    const originPt = turf.point([origin.lng, origin.lat]);
+    const destPt = turf.point([destination.lng, destination.lat]);
+
+    // Snap origin and destination to the nearest actual road
+    const snappedStart = turf.nearestPointOnLine(multiLine, originPt);
+    const snappedEnd = turf.nearestPointOnLine(multiLine, destPt);
+
+    // Calculate shortest path through the road network
+    const path = pf.findPath(snappedStart, snappedEnd);
+
+    if (path && path.path && path.path.length > 0) {
+      // geojson-path-finder weight is typically distance in km or similar, but let's calculate precise meters
+      const coords = path.path as [number, number][];
+      const distanceMeters = Math.round(totalPathDistance(coords));
+      
+      const waypoints = coords.map(([lng, lat]) => ({ lat, lng }));
+      const steps = annotateLandmarks(coords);
+      
+      // If annotateLandmarks produces no steps, add a default one
+      if (steps.length === 0) {
+        steps.push({
+          instruction: `Follow the route for ${distanceMeters}m`,
+          distance_meters: distanceMeters,
+        });
+      }
+
+      return {
+        routeId: `offline-graph-${Date.now()}`,
+        mode: "walking",
+        distanceMeters,
+        durationSeconds: Math.round(distanceMeters / 1.4), // walking speed
+        waypoints,
+        steps,
+        isStraightLine: false,
+      };
+    }
+  } catch (error) {
+    console.error("Graph routing failed, falling back to straight line:", error);
+  }
+
+  // Absolute worst-case scenario: straight-line fallback
   return generateStraightLineFallback(origin, destination);
 }
 

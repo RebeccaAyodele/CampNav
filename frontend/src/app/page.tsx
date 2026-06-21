@@ -21,6 +21,16 @@ import { ROUTES } from "@/constants";
 export default function HomePage() {
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#f9f9fc] text-[#1a1c1e]">
+      {/* Redirect immediately if launched in PWA standalone/app mode */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+              window.location.href = '/app';
+            }
+          `,
+        }}
+      />
       <style>{`
         .campnav-reveal {
           animation: campnav-reveal 900ms ease-out both;
@@ -132,7 +142,7 @@ export default function HomePage() {
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(26,28,30,0.88)_0%,rgba(26,28,30,0.6)_45%,rgba(249,249,252,0.06)_100%)]" />
 
           {/* subtle grid overlay */}
-          <div className="absolute inset-0 campnav-grid opacity-30" />
+          <div className="absolute inset-0 campnav-grid opacity-10" />
         </div>
 
         <div className="relative grid w-full items-center gap-6 px-4 py-8 sm:px-6 sm:py-16 lg:mx-24 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 lg:px-8 lg:py-20">

@@ -34,6 +34,14 @@ function DirectionsContent() {
   const [error, setError] = useState<string | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [followUserMode, setFollowUserMode] = useState(true);
+  const [hasArrived, setHasArrived] = useState(false);
+
+  const activeStepRef = useRef<HTMLDivElement>(null);
+  const userMarkerRef = useRef<maplibregl.Marker | null>(null);
+
   // Read coordinates and name from URL query params
   const destinationId = params.id as string;
   const destinationName = searchParams.get("name") || "Destination";
@@ -293,6 +301,12 @@ function DirectionsContent() {
     }
 
     return () => {
+      if (userMarkerRef.current) {
+        try {
+          userMarkerRef.current.remove();
+        } catch (_) {}
+        userMarkerRef.current = null;
+      }
       if (map) {
         try {
           map.remove();
@@ -303,6 +317,113 @@ function DirectionsContent() {
       mapRef.current = null;
     };
   }, [route]);
+
+  // Auto-scroll to active step card
+  useEffect(() => {
+    if (activeStepRef.current) {
+      activeStepRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [currentStepIndex]);
+
+  // Geolocation watchPosition GPS tracking effect
+  useEffect(() => {
+    if (!mounted || !("geolocation" in navigator)) return;
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        const newCoords: [number, number] = [lng, lat];
+        
+        setUserLocation(newCoords);
+
+        if (route && route.waypoints.length > 0) {
+          let closestIdx = 0;
+          let minDistance = Infinity;
+
+          route.waypoints.forEach((wp, idx) => {
+            const dist = haversineDistance([lng, lat], [wp.lng, wp.lat]);
+            if (dist < minDistance) {
+              minDistance = dist;
+              closestIdx = idx;
+            }
+          });
+
+          const activeStep = Math.min(closestIdx, route.steps.length - 1);
+          
+          // Auto-advance step if user moves along the path
+          setCurrentStepIndex((prev) => {
+            if (prev !== activeStep) {
+              if (isSpeaking) {
+                // Stop current speech and speak the new instruction
+                if (ttsInstanceRef.current) {
+                  ttsInstanceRef.current.cancel();
+                }
+                const instruction = route.steps[activeStep].instruction;
+                ttsInstanceRef.current = speakDirections([instruction], i18n.language, () => {});
+              }
+              return activeStep;
+            }
+            return prev;
+          });
+
+          // Check if arrived (within 8 meters of destination / final waypoint)
+          const lastWp = route.waypoints[route.waypoints.length - 1];
+          const distToDest = haversineDistance([lng, lat], [lastWp.lng, lastWp.lat]);
+          if (distToDest < 8 && !hasArrived) {
+            setHasArrived(true);
+            if (ttsInstanceRef.current) {
+              ttsInstanceRef.current.cancel();
+            }
+            if (isSpeaking) {
+              speakDirections(["You have arrived at your destination."], i18n.language, () => {});
+            }
+          }
+        }
+      },
+      (err) => {
+        console.error("GPS Tracking failed:", err);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 6000,
+        maximumAge: 0,
+      }
+    );
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+    };
+  }, [mounted, route, hasArrived, isSpeaking, i18n.language]);
+
+  // Synchronize user pulsing marker on map
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !userLocation) return;
+
+    if (!userMarkerRef.current) {
+      const el = document.createElement("div");
+      el.className = "relative flex items-center justify-center h-6 w-6";
+      el.innerHTML = `
+        <span class="absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75 animate-ping"></span>
+        <span class="relative inline-flex rounded-full h-4 w-4 bg-blue-600 border-2 border-white shadow-md"></span>
+      `;
+      const marker = new maplibregl.Marker({ element: el })
+        .setLngLat(userLocation)
+        .addTo(map);
+      userMarkerRef.current = marker;
+    } else {
+      userMarkerRef.current.setLngLat(userLocation);
+    }
+
+    if (followUserMode) {
+      map.easeTo({
+        center: userLocation,
+        zoom: 16,
+        duration: 1000
+      });
+    }
+  }, [userLocation, followUserMode]);
 
   const toggleSpeak = () => {
     if (isSpeaking) {
@@ -433,6 +554,21 @@ function DirectionsContent() {
             <span>{t("straightLine")}</span>
           </div>
         )}
+
+        {/* Recenter Button */}
+        {userLocation && (
+          <button
+            onClick={() => setFollowUserMode((prev) => !prev)}
+            className={`absolute bottom-4 right-4 p-3 rounded-full shadow-xl border backdrop-blur-md transition-all z-10 ${
+              followUserMode
+                ? "bg-blue-600 text-white border-blue-600 shadow-blue-500/20"
+                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+            }`}
+            title="Toggle Recenter GPS"
+          >
+            <Navigation className={`h-5 w-5 ${followUserMode ? "fill-white" : ""}`} />
+          </button>
+        )}
       </div>
 
       {/* Step by Step Directions Pane */}
@@ -443,24 +579,39 @@ function DirectionsContent() {
         </div>
 
         <div className="divide-y divide-slate-100">
-          {route.steps.map((step, idx) => (
-            <div key={idx} className="flex gap-4 p-4 items-start hover:bg-slate-50 transition-colors">
-              <div className="flex flex-col items-center shrink-0 mt-0.5">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-xs font-extrabold text-slate-500">
-                  {idx + 1}
-                </span>
-                {idx < route.steps.length - 1 && <div className="w-0.5 h-10 bg-slate-100 mt-2" />}
+          {route.steps.map((step, idx) => {
+            const isActive = idx === currentStepIndex;
+            return (
+              <div
+                key={idx}
+                ref={isActive ? activeStepRef : null}
+                className={`flex gap-4 p-4 items-start transition-all duration-300 ${
+                  isActive ? "bg-orange-50/70 border-l-4 border-orange-500 shadow-sm" : "hover:bg-slate-50"
+                }`}
+              >
+                <div className="flex flex-col items-center shrink-0 mt-0.5">
+                  <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-extrabold transition-all duration-300 ${
+                    isActive ? "bg-orange-500 text-white animate-pulse" : "bg-slate-100 text-slate-500"
+                  }`}>
+                    {idx + 1}
+                  </span>
+                  {idx < route.steps.length - 1 && <div className="w-0.5 h-10 bg-slate-100 mt-2" />}
+                </div>
+                <div className="flex-1">
+                  <p className={`text-sm leading-relaxed transition-colors duration-300 ${
+                    isActive ? "text-orange-950 font-bold" : "text-slate-700 font-semibold"
+                  }`}>
+                    {step.instruction}
+                  </p>
+                  <p className={`text-xs mt-1 font-bold uppercase tracking-wider transition-colors duration-300 ${
+                    isActive ? "text-orange-500" : "text-slate-400"
+                  }`}>
+                    {formatDistance(step.distance_meters)} {isActive && "• CURRENT STEP"}
+                  </p>
+                </div>
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-slate-700 leading-relaxed">
-                  {step.instruction}
-                </p>
-                <p className="text-xs text-slate-400 mt-1 font-bold">
-                  {formatDistance(step.distance_meters)}
-                </p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Action Button at bottom of scrolling card */}

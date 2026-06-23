@@ -55,7 +55,7 @@ export default function LoginPage() {
         <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-orange-600 blur-3xl" />
       </div>
 
-      <div className="relative w-full max-w-md bg-[#ff6b00]/80 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl space-y-6">
+      <div className="relative w-full max-w-md bg-[#0a1847]/75 backdrop-blur-xl border border-orange-500/30 rounded-3xl p-8 shadow-2xl space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
           <div className="inline-flex p-3 bg-orange-500/10 border border-orange-500/25 rounded-2xl text-orange-400 mb-2">

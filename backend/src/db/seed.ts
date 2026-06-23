@@ -92,6 +92,7 @@ async function seed() {
     await client.query(`DELETE FROM roads`);
     await client.query(`DELETE FROM pois`);
     await client.query(`DELETE FROM zones`);
+    await client.query(`DELETE FROM shuttle_checkins`);
 
     // ── Zones (create a default zone) ──────────────────────────────
     await client.query(
@@ -99,6 +100,12 @@ async function seed() {
        VALUES ('RC', 'Redemption City', 'Main campus area')
        ON CONFLICT (code) DO NOTHING;`
     );
+
+    // Get the newly created zone ID for shuttle relation
+    const zoneResult = await client.query<{ id: string }>(
+      `SELECT id FROM zones WHERE code = 'RC' LIMIT 1`
+    );
+    const zoneId = zoneResult.rows[0]?.id ?? null;
 
     // ── POIs from GeoJSON ──────────────────────────────────────────
     let poiCount = 0;
@@ -160,11 +167,27 @@ async function seed() {
       routeCount++;
     }
 
+    // ── Shuttle Check-ins ───────────────────────────────────────────
+    const mockCheckins = [
+      { shuttle_id: "shuttle-1", driver_name: "Ade", lat: 6.8173, lng: 3.4571, passenger_load: 12 },
+      { shuttle_id: "shuttle-2", driver_name: "Olumide", lat: 6.8122, lng: 3.4513, passenger_load: 5 },
+      { shuttle_id: "shuttle-3", driver_name: "Chioma", lat: 6.8077, lng: 3.4612, passenger_load: 18 },
+      { shuttle_id: "shuttle-4", driver_name: "Musa", lat: 6.8023, lng: 3.4484, passenger_load: 0 }
+    ];
+
+    for (const mc of mockCheckins) {
+      await client.query(
+        `INSERT INTO shuttle_checkins (shuttle_id, driver_name, zone_id, lat, lng, passenger_load, checked_in_at)
+         VALUES ($1, $2, $3, $4, $5, $6, NOW() - INTERVAL '5 minutes');`,
+        [mc.shuttle_id, mc.driver_name, zoneId, mc.lat, mc.lng, mc.passenger_load]
+      );
+    }
+
     // ── Seed log ───────────────────────────────────────────────────
     await client.query(
       `INSERT INTO logs (level, event, message, context)
-       VALUES ('info', 'db.seed', 'GeoJSON seed data applied', $1);`,
-      [{ pois: poiCount, routes: routeCount }]
+       VALUES ('info', 'db.seed', 'GeoJSON and shuttle seed data applied', $1);`,
+      [{ pois: poiCount, routes: routeCount, shuttles: mockCheckins.length }]
     );
   });
 

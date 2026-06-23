@@ -15,6 +15,20 @@ import { Bus, Users, ClipboardList, Radio, MapPin, Navigation, ArrowRight, Alert
 
 import { apiClient } from "@/lib/api";
 import { onEvent, offEvent } from "@/lib/socketClient";
+import { getPOIs } from "@/data/campGeoJSON";
+
+const CATEGORY_COLORS: Record<string, string> = {
+  parking: "#3B82F6",       // Blue
+  religion: "#8B5CF6",      // Purple
+  commerce: "#F97316",      // Orange
+  residential: "#10B981",   // Green
+  accommodation: "#06B6D4", // Cyan
+  finance: "#EAB308",       // Yellow
+  recreation: "#84CC16",    // Lime
+  education: "#6366F1",     // Indigo
+  medical: "#EF4444",       // Red
+  services: "#64748B",      // Slate
+};
 
 const DEFAULT_CENTER: [number, number] = [3.4588, 6.8097];
 
@@ -131,11 +145,77 @@ export default function DashboardPage() {
         ],
       },
       center: DEFAULT_CENTER,
-      zoom: 13,
+      zoom: 13.5,
       attributionControl: false,
     });
 
     mapRef.current = map;
+
+    map.on("load", () => {
+      // Add source for POIs
+      map.addSource("pois", {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: getPOIs() as any,
+        },
+      });
+
+      // Add circle layer with colors mapped to category
+      const colorMatchExpression: any[] = ["match", ["get", "category"]];
+      Object.entries(CATEGORY_COLORS).forEach(([cat, color]) => {
+        colorMatchExpression.push(cat, color);
+      });
+      colorMatchExpression.push("#64748B"); // Fallback color
+
+      map.addLayer({
+        id: "poi-circles",
+        type: "circle",
+        source: "pois",
+        paint: {
+          "circle-color": colorMatchExpression as any,
+          "circle-radius": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            12,
+            4,
+            16,
+            8,
+          ],
+          "circle-stroke-width": 1,
+          "circle-stroke-color": "rgba(255,255,255,0.4)",
+          "circle-opacity": 0.85,
+        },
+      });
+
+      // Click popup on POIs
+      map.on("click", "poi-circles", (e) => {
+        const feature = e.features?.[0];
+        if (feature) {
+          const props = feature.properties as any;
+          const coords = (feature.geometry as any).coordinates;
+          new maplibregl.Popup({ offset: 10 })
+            .setLngLat(coords)
+            .setHTML(`
+              <div class="text-slate-800 p-1 text-xs">
+                <h4 class="font-bold text-sm">${props.name}</h4>
+                <p class="mt-1 capitalize text-slate-500"><strong>Category:</strong> ${props.category || "other"}</p>
+                <p>${props.zone ? `<strong>Zone:</strong> ${props.zone}` : ""}</p>
+              </div>
+            `)
+            .addTo(map);
+        }
+      });
+
+      // Hover cursor changes
+      map.on("mouseenter", "poi-circles", () => {
+        map.getCanvas().style.cursor = "pointer";
+      });
+      map.on("mouseleave", "poi-circles", () => {
+        map.getCanvas().style.cursor = "";
+      });
+    });
 
     return () => {
       // Clean up markers
@@ -307,34 +387,34 @@ export default function DashboardPage() {
       {/* KPI Cards */}
       <div className="shrink-0 grid gap-4 grid-cols-1 sm:grid-cols-3">
         {/* Active Shuttles Card */}
-        <div className="bg-[#ff6b00]/35 border border-white/5 rounded-2xl p-5 shadow-lg flex items-center justify-between">
+        <div className="bg-[#0d1e4c]/40 border border-white/10 hover:border-orange-500/20 transition-all duration-300 rounded-2xl p-5 shadow-lg flex items-center justify-between group">
           <div className="space-y-1">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t("activeShuttles")}</p>
             <p className="text-3xl font-black text-white">{stats.activeShuttles}</p>
           </div>
-          <div className="p-3.5 bg-orange-500/10 rounded-xl text-orange-400">
+          <div className="p-3.5 bg-orange-500/10 rounded-xl text-orange-400 group-hover:bg-orange-500/20 transition-colors">
             <Bus className="h-6 w-6" />
           </div>
         </div>
 
         {/* Open Cases Card */}
-        <div className="bg-[#ff6b00]/35 border border-white/5 rounded-2xl p-5 shadow-lg flex items-center justify-between">
+        <div className="bg-[#0d1e4c]/40 border border-white/10 hover:border-orange-500/20 transition-all duration-300 rounded-2xl p-5 shadow-lg flex items-center justify-between group">
           <div className="space-y-1">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t("lostPersonCases")}</p>
             <p className="text-3xl font-black text-rose-400">{stats.openLostPersons}</p>
           </div>
-          <div className="p-3.5 bg-rose-500/10 rounded-xl text-rose-400">
+          <div className="p-3.5 bg-rose-500/10 rounded-xl text-rose-400 group-hover:bg-rose-500/20 transition-colors">
             <Users className="h-6 w-6" />
           </div>
         </div>
 
         {/* Check-ins Card */}
-        <div className="bg-[#ff6b00]/35 border border-white/5 rounded-2xl p-5 shadow-lg flex items-center justify-between">
+        <div className="bg-[#0d1e4c]/40 border border-white/10 hover:border-orange-500/20 transition-all duration-300 rounded-2xl p-5 shadow-lg flex items-center justify-between group">
           <div className="space-y-1">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t("totalCheckins")}</p>
             <p className="text-3xl font-black text-emerald-400">{stats.totalCheckins}</p>
           </div>
-          <div className="p-3.5 bg-emerald-500/10 rounded-xl text-emerald-400">
+          <div className="p-3.5 bg-emerald-500/10 rounded-xl text-emerald-400 group-hover:bg-emerald-500/20 transition-colors">
             <ClipboardList className="h-6 w-6" />
           </div>
         </div>
@@ -343,15 +423,15 @@ export default function DashboardPage() {
       {/* Main Grid View */}
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Live Control Map */}
-        <div className="lg:col-span-2 bg-[#ff6b00]/20 border border-white/5 rounded-3xl overflow-hidden shadow-2xl relative min-h-[350px]">
+        <div className="lg:col-span-2 bg-[#0d1e4c]/20 border border-white/10 rounded-3xl overflow-hidden shadow-2xl relative min-h-[350px]">
           <div className="absolute top-4 left-4 z-10 bg-[#071133]/90 backdrop-blur border border-white/10 rounded-xl px-4 py-2 text-xs font-bold">
             Live Field Operations Map
           </div>
-          <div ref={mapContainerRef} className="h-full w-full" />
+          <div ref={mapContainerRef} className="h-full w-full relative overflow-hidden rounded-3xl" />
         </div>
 
         {/* Live Log Activity Feed */}
-        <div className="bg-[#ff6b00]/20 border border-white/5 rounded-3xl p-5 shadow-2xl flex flex-col min-h-[300px]">
+        <div className="bg-[#0d1e4c]/20 border border-white/10 rounded-3xl p-5 shadow-2xl flex flex-col min-h-[300px]">
           <h3 className="font-extrabold text-sm text-slate-300 mb-4 tracking-wide uppercase shrink-0 flex items-center gap-2">
             <Radio className="h-4.5 w-4.5 text-orange-400 animate-pulse" />
             <span>{t("activityLog")}</span>

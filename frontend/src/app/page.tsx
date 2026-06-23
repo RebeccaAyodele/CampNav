@@ -1,24 +1,135 @@
-/**
- * Landing Page (/)
- *
- * Purpose:
- *   - First page users see
- *   - Explains what CampNav is
- *   - Two main CTAs: "Open Visitor App" and "Admin Login"
- *
- * Components that will go here:
- *   - Hero section with app description
- *   - Feature highlights
- *   - Two prominent CTA buttons
- *   - Footer with links
- */
+"use client";
 
+import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Menu } from "lucide-react";
+import { Menu, Phone, Delete, RotateCcw } from "lucide-react";
 import { ROUTES } from "@/constants";
+import { config } from "@/config";
 
 export default function HomePage() {
+  const [dialedDigits, setDialedDigits] = useState("");
+  const [screenText, setScreenText] = useState("CampNav GSM Standby\n\nDial *384*4040# to begin.");
+  const [sessionActive, setSessionActive] = useState(false);
+  const [sessionText, setSessionText] = useState<string[]>([]);
+  const [ussdReply, setUssdReply] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sessionId, setSessionId] = useState("");
+  const [isUssdEnd, setIsUssdEnd] = useState(false);
+
+  const handleKeypadPress = (key: string) => {
+    if (loading) return;
+    if (!sessionActive) {
+      setDialedDigits((prev) => prev + key);
+    } else {
+      if (!isUssdEnd) {
+        setUssdReply((prev) => prev + key);
+      }
+    }
+  };
+
+  const handleDialBackspace = () => {
+    if (loading) return;
+    if (!sessionActive) {
+      setDialedDigits((prev) => prev.slice(0, -1));
+    } else {
+      if (!isUssdEnd) {
+        setUssdReply((prev) => prev.slice(0, -1));
+      }
+    }
+  };
+
+  const handleDialEnd = () => {
+    setSessionActive(false);
+    setSessionText([]);
+    setUssdReply("");
+    setIsUssdEnd(false);
+    setDialedDigits("");
+    setScreenText("CampNav GSM Standby\n\nDial *384*4040# to begin.");
+  };
+
+  const handleDialCall = async () => {
+    if (loading) return;
+    if (!sessionActive) {
+      if (dialedDigits === "*384*4040#") {
+        setLoading(true);
+        const sessId = "sim-session-" + Math.floor(Math.random() * 10000000);
+        setSessionId(sessId);
+        try {
+          const res = await fetch(`${config.api.baseUrl}/api/ussd/webhook`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sessionId: sessId,
+              phoneNumber: "+2348031234567",
+              text: ""
+            })
+          });
+          const data = await res.text();
+          if (data.startsWith("CON ")) {
+            setScreenText(data.substring(4));
+            setSessionActive(true);
+            setIsUssdEnd(false);
+          } else if (data.startsWith("END ")) {
+            setScreenText(data.substring(4));
+            setSessionActive(true);
+            setIsUssdEnd(true);
+          } else {
+            setScreenText(data);
+          }
+        } catch (err) {
+          setScreenText("Network Error.\nMake sure backend is online.");
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setScreenText("Unknown number.\nTry dialing *384*4040#");
+        setTimeout(() => {
+          setScreenText("CampNav GSM Standby\n\nDial *384*4040# to begin.");
+        }, 3000);
+      }
+    } else {
+      handleUssdSend();
+    }
+  };
+
+  const handleUssdSend = async () => {
+    if (loading || isUssdEnd) return;
+    if (!ussdReply.trim()) return;
+
+    setLoading(true);
+    const nextSessionText = [...sessionText, ussdReply];
+    setSessionText(nextSessionText);
+    const accumulatedText = nextSessionText.join("*");
+    setUssdReply("");
+
+    try {
+      const res = await fetch(`${config.api.baseUrl}/api/ussd/webhook`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: sessionId,
+          phoneNumber: "+2348031234567",
+          text: accumulatedText
+        })
+      });
+      const data = await res.text();
+      if (data.startsWith("CON ")) {
+        setScreenText(data.substring(4));
+        setIsUssdEnd(false);
+      } else if (data.startsWith("END ")) {
+        setScreenText(data.substring(4));
+        setIsUssdEnd(true);
+      } else {
+        setScreenText(data);
+      }
+    } catch (err) {
+      setScreenText("Network Error.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#f9f9fc] text-[#1a1c1e]">
       {/* Redirect immediately if launched in PWA standalone/app mode */}
@@ -220,14 +331,137 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="relative flex min-h-105 items-stretch justify-center overflow-hidden rounded-3xl bg-[#1a1c1e] shadow-2xl lg:ml-8 lg:min-h-0">
-            <Image
-              src="/button-phone.png"
-              alt="Phone showing CampNav controls"
-              fill
-              sizes="(min-width: 1024px) 50vw, 100vw"
-              className="object-cover object-center"
-            />
+          {/* Retro Nokia USSD Phone Simulator Widget */}
+          <div className="flex flex-col items-center justify-center p-6 bg-slate-900 border border-white/10 rounded-3xl shadow-2xl lg:ml-8 min-h-[550px] relative overflow-hidden select-none">
+            <div className="absolute top-3 left-3 bg-orange-600/10 border border-orange-500/25 px-3 py-1 rounded-full text-[10px] font-black text-orange-400 tracking-wider z-10 animate-pulse">
+              INTERACTIVE USSD SIMULATOR
+            </div>
+            
+            {/* Nokia Phone Frame */}
+            <div className="w-[260px] bg-slate-800 border-8 border-slate-950 rounded-[40px] shadow-2xl p-4 flex flex-col items-center gap-4 relative">
+              {/* Ear Speaker */}
+              <div className="w-12 h-1.5 bg-slate-950 rounded-full mb-1" />
+              
+              {/* LCD Screen Container */}
+              <div className="w-full bg-[#b9c8a1] text-[#1c2e17] font-mono border-4 border-slate-700 rounded-lg p-2.5 h-[190px] flex flex-col justify-between shadow-inner relative text-[11px] leading-tight select-none">
+                {/* Header signal/battery */}
+                <div className="flex justify-between items-center text-[9px] border-b border-[#1c2e17]/25 pb-1 uppercase font-bold">
+                  <span>📶 RCCG Link</span>
+                  <span>🔋 100%</span>
+                </div>
+                
+                {/* Screen Content */}
+                <div className="flex-1 my-2 overflow-y-auto whitespace-pre-wrap pr-0.5 text-left font-bold text-[10px]">
+                  {loading ? (
+                    <div className="h-full flex items-center justify-center text-xs animate-pulse">
+                      Sending...
+                    </div>
+                  ) : (
+                    screenText
+                  )}
+                </div>
+
+                {/* Dialed digits overlay / active input */}
+                <div className="border-t border-[#1c2e17]/25 pt-1 flex flex-col gap-1 shrink-0">
+                  {!sessionActive ? (
+                    <div className="text-right text-xs font-black tracking-widest text-[#1c2e17] truncate h-4">
+                      {dialedDigits || " "}
+                    </div>
+                  ) : (
+                    !isUssdEnd && (
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          handleUssdSend();
+                        }}
+                        className="flex gap-1"
+                      >
+                        <input
+                          type="text"
+                          value={ussdReply}
+                          onChange={(e) => setUssdReply(e.target.value)}
+                          className="flex-1 bg-[#a5b48e] border-b border-[#1c2e17] text-[#1c2e17] font-mono text-xs px-1 focus:outline-none placeholder-[#1c2e17]/30"
+                          placeholder="Reply..."
+                          disabled={loading}
+                          autoFocus
+                        />
+                        <button
+                          type="submit"
+                          disabled={loading}
+                          className="bg-[#1c2e17] text-[#b9c8a1] px-2 py-0.5 text-[9px] font-black rounded active:scale-95"
+                        >
+                          SEND
+                        </button>
+                      </form>
+                    )
+                  )}
+                </div>
+              </div>
+
+              {/* Nokia Keyboard Grid */}
+              <div className="w-full flex flex-col gap-3">
+                {/* Navigation Keys */}
+                <div className="grid grid-cols-3 gap-2 text-center text-slate-400 font-bold text-[10px]">
+                  {/* Left select (Send/Select) */}
+                  <button
+                    onClick={sessionActive ? handleUssdSend : handleDialCall}
+                    className="py-1.5 bg-slate-700 hover:bg-slate-600 active:bg-slate-700 text-white rounded-lg font-bold border border-slate-600 active:scale-95 transition-all"
+                  >
+                    SELECT
+                  </button>
+                  {/* Menu / Nav arrow */}
+                  <div className="flex flex-col items-center justify-center text-[10px] text-slate-500 font-black">
+                    ▲▼
+                  </div>
+                  {/* Right select (Clear) */}
+                  <button
+                    onClick={handleDialBackspace}
+                    className="py-1.5 bg-slate-700 hover:bg-slate-600 active:bg-slate-700 text-white rounded-lg font-bold border border-slate-600 active:scale-95 transition-all flex items-center justify-center gap-0.5"
+                  >
+                    <Delete className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                {/* Call / End Keys */}
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Green Call button */}
+                  <button
+                    onClick={handleDialCall}
+                    className="py-2 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-xl border border-emerald-500 shadow-md font-bold text-[10px] flex items-center justify-center gap-1 active:scale-95 transition-all"
+                  >
+                    <Phone className="h-3 w-3 fill-white" />
+                    <span>CALL</span>
+                  </button>
+                  {/* Red End button */}
+                  <button
+                    onClick={handleDialEnd}
+                    className="py-2 bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white rounded-xl border border-rose-500 shadow-md font-bold text-[10px] flex items-center justify-center gap-1 active:scale-95 transition-all"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    <span>END</span>
+                  </button>
+                </div>
+
+                {/* Numeric Grid Keys */}
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { key: "1", label: "1" }, { key: "2", label: "2 ABC" }, { key: "3", label: "3 DEF" },
+                    { key: "4", label: "4 GHI" }, { key: "5", label: "5 JKL" }, { key: "6", label: "6 MNO" },
+                    { key: "7", label: "7 PQRS" }, { key: "8", label: "8 TUV" }, { key: "9", label: "9 WXYZ" },
+                    { key: "*", label: "*" }, { key: "0", label: "0" }, { key: "#", label: "#" }
+                  ].map((btn) => (
+                    <button
+                      key={btn.key}
+                      onClick={() => handleKeypadPress(btn.key)}
+                      className="py-2 bg-slate-700 hover:bg-slate-600 active:bg-slate-800 text-white border border-slate-600/40 rounded-xl shadow active:scale-95 transition-all flex flex-col items-center justify-center"
+                    >
+                      <span className="text-xs font-bold leading-none">{btn.key}</span>
+                      <span className="text-[6px] text-slate-400 font-semibold tracking-wide uppercase leading-none mt-0.5">{btn.label.includes(" ") ? btn.label.split(" ")[1] : ""}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>

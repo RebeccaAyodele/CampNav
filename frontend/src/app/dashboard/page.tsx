@@ -16,6 +16,7 @@ import { Bus, Users, ClipboardList, Radio, MapPin, Navigation, ArrowRight, Alert
 import { apiClient } from "@/lib/api";
 import { onEvent, offEvent } from "@/lib/socketClient";
 import { getPOIs } from "@/data/campGeoJSON";
+import { config } from "@/config";
 
 const CATEGORY_COLORS: Record<string, string> = {
   parking: "#3B82F6",       // Blue
@@ -73,6 +74,70 @@ export default function DashboardPage() {
   const lostPersonMarkersRef = useRef<Record<string, maplibregl.Marker>>({});
 
   const [shuttles, setShuttles] = useState<ShuttleData[]>([]);
+  const [isSimulatingShuttles, setIsSimulatingShuttles] = useState(false);
+  const [shuttleIndices, setShuttleIndices] = useState<Record<string, number>>({
+    "shuttle-1": 0,
+    "shuttle-2": 0,
+    "shuttle-3": 0,
+    "shuttle-4": 0,
+  });
+  const shuttleSimIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Shuttle GPS telemetry simulation effect
+  useEffect(() => {
+    if (!isSimulatingShuttles) {
+      if (shuttleSimIntervalRef.current) {
+        clearInterval(shuttleSimIntervalRef.current);
+        shuttleSimIntervalRef.current = null;
+      }
+      return;
+    }
+
+    const simDrivers = [
+      { id: "shuttle-1", name: "Ade", route: [[3.4564458, 6.8198983], [3.4564295, 6.8199064], [3.4571496, 6.8185982], [3.4571332, 6.8185576], [3.4571332, 6.8185901], [3.4574025, 6.8176721], [3.4573915, 6.8168145]], zone: "Zone A" },
+      { id: "shuttle-2", name: "Olumide", route: [[3.456378, 6.8199736], [3.4573852, 6.8176968], [3.4574709, 6.8170158], [3.4568388, 6.8148986], [3.4579853, 6.8144624], [3.4577508, 6.8125066], [3.4573048, 6.8112875], [3.4567644, 6.810407]], zone: "Zone B" },
+      { id: "shuttle-3", name: "Chioma", route: [[3.4612929, 6.8103232], [3.4611512, 6.8098925], [3.4619833, 6.809374], [3.4616646, 6.8084687], [3.4612929, 6.8077831]], zone: "Zone C" },
+      { id: "shuttle-4", name: "Musa", route: [[3.4593595, 6.7628041], [3.4589156, 6.762744], [3.4589694, 6.7618959], [3.4687606, 6.7622632], [3.4688233, 6.7620483], [3.4691223, 6.76218], [3.469788, 6.7607643]], zone: "Zone D" }
+    ];
+
+    shuttleSimIntervalRef.current = setInterval(() => {
+      simDrivers.forEach((drv) => {
+        setShuttleIndices((prev) => {
+          const currentIndex = prev[drv.id] ?? 0;
+          const nextIndex = (currentIndex + 1) % drv.route.length;
+          const [lng, lat] = drv.route[nextIndex]!;
+
+          // Fire real HTTP check-in posts to backend (which broadcasts via WebSocket)
+          fetch(`${config.api.baseUrl}/api/shuttles/checkin`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              shuttleId: drv.id,
+              driverName: drv.name,
+              lat,
+              lng,
+              zone: drv.zone,
+              passengerLoad: Math.floor(Math.random() * 15) + 3,
+            }),
+          }).catch((err) => console.error("Telemetry Sim check-in failed:", err));
+
+          return {
+            ...prev,
+            [drv.id]: nextIndex,
+          };
+        });
+      });
+    }, 4000);
+
+    return () => {
+      if (shuttleSimIntervalRef.current) {
+        clearInterval(shuttleSimIntervalRef.current);
+      }
+    };
+  }, [isSimulatingShuttles]);
+
   const [lostPersons, setLostPersons] = useState<LostPersonReport[]>([]);
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   
@@ -430,36 +495,82 @@ export default function DashboardPage() {
           <div ref={mapContainerRef} className="h-full w-full relative overflow-hidden rounded-3xl" />
         </div>
 
-        {/* Live Log Activity Feed */}
-        <div className="bg-[#0d1e4c]/20 border border-white/10 rounded-3xl p-5 shadow-2xl flex flex-col min-h-[300px]">
-          <h3 className="font-extrabold text-sm text-slate-300 mb-4 tracking-wide uppercase shrink-0 flex items-center gap-2">
-            <Radio className="h-4.5 w-4.5 text-orange-400 animate-pulse" />
-            <span>{t("activityLog")}</span>
-          </h3>
-
-          <div className="flex-1 overflow-y-auto space-y-3.5 pr-1">
-            {logs.length > 0 ? (
-              logs.map((log, idx) => {
-                const isCheckin = log.type === "shuttle_checkin";
-                return (
-                  <div key={idx} className="flex gap-3 text-xs items-start p-3 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 transition-colors">
-                    <span className={`text-base shrink-0 ${isCheckin ? "text-orange-400" : "text-rose-400"}`}>
-                      {isCheckin ? "🚌" : "👤"}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="font-bold text-slate-200 leading-relaxed break-words">{log.description}</p>
-                      <p className="text-[10px] text-slate-400 font-semibold mt-1">
-                        {new Date(log.timestamp).toLocaleTimeString()}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="h-full flex items-center justify-center text-slate-500 font-semibold">
-                No activity reported yet
+        {/* Right column: Simulator Controls + Live Activity Feed */}
+        <div className="flex flex-col gap-6 lg:col-span-1 min-h-0">
+          {/* Simulation Controller Panel */}
+          <div className="bg-[#0d1e4c]/40 border border-orange-500/20 rounded-3xl p-5 shadow-2xl flex flex-col shrink-0">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-extrabold text-sm text-slate-200 tracking-wide uppercase">
+                  ⚡ Telemetry Simulator
+                </h3>
+                <p className="text-[10px] text-slate-400 font-bold mt-0.5">
+                  Simulate live GPS check-ins from multiple routes
+                </p>
               </div>
-            )}
+              <button
+                onClick={() => setIsSimulatingShuttles((prev) => !prev)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  isSimulatingShuttles
+                    ? "bg-orange-500 text-white shadow-lg shadow-orange-500/20 animate-pulse"
+                    : "bg-white/10 text-slate-300 border border-white/5 hover:bg-white/20"
+                }`}
+              >
+                {isSimulatingShuttles ? "SIM ACTIVE" : "START SIM"}
+              </button>
+            </div>
+            
+            <div className="space-y-2 text-xs">
+              {[
+                { name: "Shuttle 1 (Ade)", route: "Main Gate ➔ Access Bank" },
+                { name: "Shuttle 2 (Olumide)", route: "Main Gate ➔ Glory Arena" },
+                { name: "Shuttle 3 (Chioma)", route: "Bible College ➔ Market" },
+                { name: "Shuttle 4 (Musa)", route: "New Auditorium ➔ Simawa" }
+              ].map((sh, idx) => (
+                <div key={idx} className="flex items-center justify-between p-2 bg-white/5 border border-white/5 rounded-xl">
+                  <div className="flex items-center gap-2">
+                    <span className={`h-2 w-2 rounded-full ${isSimulatingShuttles ? "bg-emerald-500 animate-ping" : "bg-slate-600"}`} />
+                    <span className="font-bold text-slate-200">{sh.name}</span>
+                  </div>
+                  <span className="text-[10px] font-semibold text-slate-400 truncate max-w-[130px]">
+                    {sh.route}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Live Log Activity Feed */}
+          <div className="bg-[#0d1e4c]/20 border border-white/10 rounded-3xl p-5 shadow-2xl flex-1 flex flex-col min-h-[300px]">
+            <h3 className="font-extrabold text-sm text-slate-300 mb-4 tracking-wide uppercase shrink-0 flex items-center gap-2">
+              <Radio className="h-4.5 w-4.5 text-orange-400 animate-pulse" />
+              <span>{t("activityLog")}</span>
+            </h3>
+
+            <div className="flex-1 overflow-y-auto space-y-3.5 pr-1">
+              {logs.length > 0 ? (
+                logs.map((log, idx) => {
+                  const isCheckin = log.type === "shuttle_checkin";
+                  return (
+                    <div key={idx} className="flex gap-3 text-xs items-start p-3 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 transition-colors">
+                      <span className={`text-base shrink-0 ${isCheckin ? "text-orange-400" : "text-rose-400"}`}>
+                        {isCheckin ? "🚌" : "👤"}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-200 leading-relaxed break-words">{log.description}</p>
+                        <p className="text-[10px] text-slate-400 font-semibold mt-1">
+                          {new Date(log.timestamp).toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="h-full flex items-center justify-center text-slate-500 font-semibold">
+                  No activity reported yet
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

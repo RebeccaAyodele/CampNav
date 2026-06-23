@@ -42,6 +42,9 @@ function DirectionsContent() {
   const activeStepRef = useRef<HTMLDivElement>(null);
   const userMarkerRef = useRef<maplibregl.Marker | null>(null);
 
+  const [isSimulatingWalk, setIsSimulatingWalk] = useState(false);
+  const walkSimIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
   // Read coordinates and name from URL query params
   const destinationId = params.id as string;
   const destinationName = searchParams.get("name") || "Destination";
@@ -202,6 +205,9 @@ function DirectionsContent() {
     calculateRoute();
 
     return () => {
+      if (walkSimIntervalRef.current) {
+        clearInterval(walkSimIntervalRef.current);
+      }
       if (ttsInstanceRef.current) {
         ttsInstanceRef.current.cancel();
       }
@@ -446,6 +452,72 @@ function DirectionsContent() {
     );
   };
 
+  const toggleWalkSimulation = () => {
+    if (isSimulatingWalk) {
+      if (walkSimIntervalRef.current) {
+        clearInterval(walkSimIntervalRef.current);
+        walkSimIntervalRef.current = null;
+      }
+      setIsSimulatingWalk(false);
+      return;
+    }
+
+    if (!route || route.waypoints.length === 0) return;
+
+    setIsSimulatingWalk(true);
+    setIsSpeaking(true);
+    setHasArrived(false);
+    setCurrentStepIndex(0);
+
+    let currentIndex = 0;
+    const firstWp = route.waypoints[0]!;
+    setUserLocation([firstWp.lng, firstWp.lat]);
+
+    walkSimIntervalRef.current = setInterval(() => {
+      currentIndex++;
+      if (currentIndex >= route.waypoints.length) {
+        if (walkSimIntervalRef.current) {
+          clearInterval(walkSimIntervalRef.current);
+          walkSimIntervalRef.current = null;
+        }
+        setIsSimulatingWalk(false);
+        setHasArrived(true);
+        speakDirections(["You have arrived at your destination."], i18n.language, () => {});
+        return;
+      }
+
+      const wp = route.waypoints[currentIndex]!;
+      const lng = wp.lng;
+      const lat = wp.lat;
+      setUserLocation([lng, lat]);
+
+      let closestIdx = 0;
+      let minDistance = Infinity;
+
+      route.waypoints.forEach((wpVal, idx) => {
+        const dist = haversineDistance([lng, lat], [wpVal.lng, wpVal.lat]);
+        if (dist < minDistance) {
+          minDistance = dist;
+          closestIdx = idx;
+        }
+      });
+
+      const activeStep = Math.min(closestIdx, route.steps.length - 1);
+      
+      setCurrentStepIndex((prev) => {
+        if (prev !== activeStep) {
+          if (ttsInstanceRef.current) {
+            ttsInstanceRef.current.cancel();
+          }
+          const instruction = route.steps[activeStep].instruction;
+          ttsInstanceRef.current = speakDirections([instruction], i18n.language, () => {});
+          return activeStep;
+        }
+        return prev;
+      });
+    }, 3500);
+  };
+
   const handleArrival = () => {
     if (ttsInstanceRef.current) {
       ttsInstanceRef.current.cancel();
@@ -528,19 +600,34 @@ function DirectionsContent() {
             <p className="text-sm font-extrabold text-slate-800">{formatDuration(route.durationSeconds)}</p>
           </div>
 
-          {mounted && isSpeechSynthesisSupported() && (
-            <button
-              onClick={toggleSpeak}
-              className={`p-2.5 rounded-full transition-all border ${
-                isSpeaking
-                  ? "bg-rose-500 border-rose-500 text-white shadow-lg shadow-rose-500/20"
-                  : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-              }`}
-              title={isSpeaking ? t("stopSpeaking") : t("speakDirections")}
-            >
-              {isSpeaking ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {mounted && (
+              <button
+                onClick={toggleWalkSimulation}
+                className={`px-3 py-2 rounded-xl text-xs font-black tracking-wider transition-all border ${
+                  isSimulatingWalk
+                    ? "bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-500/20 animate-pulse"
+                    : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                {isSimulatingWalk ? "SIM ACTIVE" : "SIM WALK"}
+              </button>
+            )}
+
+            {mounted && isSpeechSynthesisSupported() && (
+              <button
+                onClick={toggleSpeak}
+                className={`p-2.5 rounded-full transition-all border ${
+                  isSpeaking
+                    ? "bg-rose-500 border-rose-500 text-white shadow-lg shadow-rose-500/20"
+                    : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                }`}
+                title={isSpeaking ? t("stopSpeaking") : t("speakDirections")}
+              >
+                {isSpeaking ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

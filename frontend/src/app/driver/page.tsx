@@ -152,8 +152,27 @@ export default function DriverPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto p-4 flex flex-col min-h-full justify-between">
-      <div className="space-y-4">
+    <div className="relative min-h-full flex items-center justify-center p-4 text-white">
+      {/* Background decoration elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
+        <div className="absolute -top-40 -left-40 h-96 w-96 rounded-full bg-orange-600 blur-3xl" />
+        <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-orange-600 blur-3xl" />
+      </div>
+
+      <div className="relative w-full max-w-md bg-[#0a1847]/75 backdrop-blur-xl border border-orange-500/30 rounded-3xl p-8 shadow-2xl space-y-6">
+        {/* Brand Header */}
+        <div className="text-center space-y-2">
+          <div className="inline-flex p-3 bg-orange-500/10 border border-orange-500/25 rounded-2xl text-orange-400 mb-2">
+            <Bus className="h-8 w-8" />
+          </div>
+          <h1 className="text-2xl font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-indigo-200">
+            {t("driverCheckin")}
+          </h1>
+          <p className="text-xs text-white/50 font-bold uppercase tracking-wider">
+            CampNav Driver Portal
+          </p>
+        </div>
+
         {/* Success Alert */}
         {submitStatus === "success" && (
           <div className="bg-emerald-500/20 border border-emerald-500/30 text-emerald-200 p-4 rounded-xl flex items-start gap-3 shadow-md animate-in fade-in duration-300">
@@ -180,67 +199,72 @@ export default function DriverPage() {
         )}
 
         {/* Input Card Form */}
-        <form onSubmit={handleSubmit} className="bg-[#ff6b00]/30 border border-white/10 rounded-2xl p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Shuttle ID */}
           <div>
-            <label className="block text-xs font-bold text-orange-200 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <Bus className="h-4 w-4" />
-              <span>{t("vehicleId")} *</span>
+            <label className="block text-xs font-bold text-orange-200 uppercase tracking-wider mb-2">
+              {t("vehicleId")} *
             </label>
-            <input
-              type="text"
-              name="shuttleId"
-              value={formData.shuttleId}
-              onChange={handleInputChange}
-              placeholder={t("vehicleIdPlaceholder")}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold placeholder-white/35 focus:outline-none focus:border-orange-400 text-lg uppercase"
-              required
-            />
+            <div className="relative">
+              <Bus className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/30" />
+              <input
+                type="text"
+                name="shuttleId"
+                value={formData.shuttleId}
+                onChange={handleInputChange}
+                placeholder={t("vehicleIdPlaceholder")}
+                className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white font-bold placeholder-white/20 focus:outline-none focus:border-orange-400 text-lg uppercase"
+                required
+              />
+            </div>
           </div>
 
           {/* Driver Name */}
           <div>
-            <label className="block text-xs font-bold text-orange-200 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <User className="h-4 w-4" />
-              <span>{t("driverName")}</span>
+            <label className="block text-xs font-bold text-orange-200 uppercase tracking-wider mb-2">
+              {t("driverName")}
             </label>
-            <input
-              type="text"
-              name="driverName"
-              value={formData.driverName}
-              onChange={handleInputChange}
-              placeholder={t("driverNamePlaceholder")}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold placeholder-white/35 focus:outline-none focus:border-orange-400"
-            />
+            <div className="relative">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/30" />
+              <input
+                type="text"
+                name="driverName"
+                value={formData.driverName}
+                onChange={handleInputChange}
+                placeholder={t("driverNamePlaceholder")}
+                className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white font-semibold placeholder-white/20 focus:outline-none focus:border-orange-400"
+              />
+            </div>
           </div>
 
           {/* Zone and Passenger Load Row */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-orange-200 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <Map className="h-4 w-4" />
-                <span>{t("zone")}</span>
+              <label className="block text-xs font-bold text-orange-200 uppercase tracking-wider mb-2">
+                {t("zone")}
               </label>
-              <input
-                type="text"
-                name="zone"
-                value={formData.zone}
-                onChange={handleInputChange}
-                placeholder={t("zonePlaceholder")}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold placeholder-white/35 focus:outline-none focus:border-orange-400 uppercase"
-              />
+              <div className="relative">
+                <Map className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/30" />
+                <input
+                  type="text"
+                  name="zone"
+                  value={formData.zone}
+                  onChange={handleInputChange}
+                  placeholder={t("zonePlaceholder")}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white font-semibold placeholder-white/20 focus:outline-none focus:border-orange-400 uppercase"
+                />
+              </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-orange-200 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <Users className="h-4 w-4" />
-                <span>{t("passengerLoad")}</span>
+              <label className="block text-xs font-bold text-orange-200 uppercase tracking-wider mb-2">
+                {t("passengerLoad")}
               </label>
-              <div className="flex bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+              <div className="flex bg-white/5 border border-white/10 rounded-xl overflow-hidden h-[46px] items-stretch">
                 <button
                   type="button"
                   onClick={() => incrementLoad(-5)}
-                  className="px-3 bg-white/5 font-bold hover:bg-white/10 text-white text-lg active:scale-95 transition-all"
+                  className="px-3 bg-white/5 font-bold hover:bg-white/10 text-white text-lg active:scale-95 transition-all focus:outline-none"
                 >
                   -
                 </button>
@@ -254,7 +278,7 @@ export default function DriverPage() {
                 <button
                   type="button"
                   onClick={() => incrementLoad(5)}
-                  className="px-3 bg-white/5 font-bold hover:bg-white/10 text-white text-lg active:scale-95 transition-all"
+                  className="px-3 bg-white/5 font-bold hover:bg-white/10 text-white text-lg active:scale-95 transition-all focus:outline-none"
                 >
                   +
                 </button>
@@ -264,9 +288,9 @@ export default function DriverPage() {
 
           {/* Location status coordinates */}
           <div className="bg-white/5 border border-white/10 rounded-xl p-3.5 flex items-center justify-between text-xs">
-            <span className="font-bold text-orange-200 uppercase tracking-wider flex items-center gap-1">
-              <MapPin className="h-4 w-4" />
-              Location
+            <span className="font-bold text-orange-200 uppercase tracking-wider flex items-center gap-1.5">
+              <MapPin className="h-4 w-4 text-orange-400" />
+              <span>Location</span>
             </span>
             <div className="flex items-center gap-2">
               {lat !== null && lng !== null ? (
@@ -279,7 +303,7 @@ export default function DriverPage() {
               <button
                 type="button"
                 onClick={trackLocation}
-                className="p-1 rounded bg-white/10 hover:bg-white/20 active:scale-95 text-orange-200 hover:text-white"
+                className="p-1 rounded bg-white/10 hover:bg-white/20 active:scale-95 text-orange-200 hover:text-white transition-all"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${isLocating ? "animate-spin" : ""}`} />
               </button>
@@ -290,27 +314,30 @@ export default function DriverPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-6 bg-orange-500 hover:bg-orange-600 text-white font-black text-xl rounded-2xl shadow-xl shadow-orange-500/20 transition-all active:scale-[0.98] disabled:bg-slate-700 disabled:shadow-none"
+            className="w-full flex items-center justify-center gap-2 py-4 bg-orange-500 hover:bg-orange-600 disabled:bg-slate-700 text-white rounded-xl font-bold shadow-lg shadow-orange-500/20 active:scale-[0.99] transition-all text-lg"
           >
             {isSubmitting ? (
-              <RefreshCw className="h-7 w-7 animate-spin mx-auto" />
+              <>
+                <RefreshCw className="h-6 w-6 animate-spin" />
+                <span>Submitting...</span>
+              </>
             ) : (
-              t("iAmHere")
+              <span>{t("iAmHere")}</span>
             )}
           </button>
         </form>
-      </div>
 
-      {/* Footer Info */}
-      <div className="text-center space-y-3 py-6 shrink-0 border-t border-white/5 mt-6">
-        {lastCheckinTime && (
-          <p className="text-sm font-bold text-orange-300">
-            {t("lastCheckin")}: <span className="text-white">{lastCheckinTime}</span>
-          </p>
-        )}
-        <div className="text-[10px] text-white/45 font-bold uppercase tracking-widest leading-relaxed">
-          <p>{t("checkInWhenStop")}</p>
-          <p>{t("locationRecorded")}</p>
+        {/* Footer Info */}
+        <div className="text-center space-y-3 pt-6 border-t border-white/5 mt-6">
+          {lastCheckinTime && (
+            <p className="text-sm font-bold text-orange-300">
+              {t("lastCheckin")}: <span className="text-white">{lastCheckinTime}</span>
+            </p>
+          )}
+          <div className="text-[10px] text-white/45 font-bold uppercase tracking-widest leading-relaxed">
+            <p>{t("checkInWhenStop")}</p>
+            <p>{t("locationRecorded")}</p>
+          </div>
         </div>
       </div>
     </div>

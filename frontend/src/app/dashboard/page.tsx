@@ -434,7 +434,7 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <div className="flex flex-col gap-6 h-full min-h-0">
+    <div className="flex flex-col gap-6 min-h-full lg:h-full lg:min-h-0">
       {/* Page Title */}
       <div className="shrink-0 flex items-center justify-between">
         <div>

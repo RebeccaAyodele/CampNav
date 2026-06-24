@@ -16,6 +16,19 @@ import { ArrowLeft, Volume2, VolumeX, CheckCircle, Navigation, MapPin } from "lu
 import { useNetworkStatus, useMounted } from "@/hooks";
 import { findOfflineRoute, haversineDistance, type RouteResult } from "@/lib/offlineRouter";
 import { speakDirections, isSpeechSynthesisSupported } from "@/lib/speechEngine";
+import { connectSocket, disconnectSocket, onEvent, offEvent } from "@/lib/socketClient";
+import { config } from "@/config";
+import { apiClient } from "@/lib/api";
+
+interface ShuttleData {
+  shuttleId: string;
+  driverName?: string;
+  lat: number;
+  lng: number;
+  zone?: string;
+  passengerLoad: number;
+  lastCheckin: string;
+}
 
 function DirectionsContent() {
   const router = useRouter();
@@ -45,6 +58,9 @@ function DirectionsContent() {
   const [isSimulatingWalk, setIsSimulatingWalk] = useState(false);
   const walkSimIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  const [shuttles, setShuttles] = useState<ShuttleData[]>([]);
+  const shuttleMarkersRef = useRef<Record<string, maplibregl.Marker>>({});
+
   // Read coordinates and name from URL query params
   const destinationId = params.id as string;
   const destinationName = searchParams.get("name") || "Destination";
@@ -59,11 +75,15 @@ function DirectionsContent() {
       setLoading(true);
       setError(null);
 
+      const isSim = searchParams.get("sim") === "true";
       let originLat = parseFloat(olatParam || "0");
       let originLng = parseFloat(olngParam || "0");
 
-      // Auto-detect location if not provided
-      if (!olatParam || !olngParam) {
+      // Override start location to Main Gate if simulating for demo
+      if (isSim) {
+        originLat = 6.8199;
+        originLng = 3.4564;
+      } else if (!olatParam || !olngParam) {
         try {
           const position = await new Promise<GeolocationPosition>((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(resolve, reject, {
@@ -212,7 +232,7 @@ function DirectionsContent() {
         ttsInstanceRef.current.cancel();
       }
     };
-  }, [destinationId, dlat, dlng, olatParam, olngParam, mode]);
+  }, [destinationId, dlat, dlng, olatParam, olngParam, mode, searchParams]);
 
   // Render MapLibre route LineString
   useEffect(() => {
@@ -313,6 +333,10 @@ function DirectionsContent() {
         } catch (_) {}
         userMarkerRef.current = null;
       }
+      // Remove all shuttle markers
+      Object.values(shuttleMarkersRef.current).forEach((m) => m.remove());
+      shuttleMarkersRef.current = {};
+
       if (map) {
         try {
           map.remove();
@@ -452,17 +476,16 @@ function DirectionsContent() {
     );
   };
 
-  const toggleWalkSimulation = () => {
-    if (isSimulatingWalk) {
-      if (walkSimIntervalRef.current) {
-        clearInterval(walkSimIntervalRef.current);
-        walkSimIntervalRef.current = null;
-      }
-      setIsSimulatingWalk(false);
-      return;
+  const stopWalkSimulation = () => {
+    if (walkSimIntervalRef.current) {
+      clearInterval(walkSimIntervalRef.current);
+      walkSimIntervalRef.current = null;
     }
+    setIsSimulatingWalk(false);
+  };
 
-    if (!route || route.waypoints.length === 0) return;
+  const startWalkSimulation = (r: RouteResult) => {
+    if (!r || r.waypoints.length === 0) return;
 
     setIsSimulatingWalk(true);
     setIsSpeaking(true);
@@ -470,12 +493,12 @@ function DirectionsContent() {
     setCurrentStepIndex(0);
 
     let currentIndex = 0;
-    const firstWp = route.waypoints[0]!;
+    const firstWp = r.waypoints[0]!;
     setUserLocation([firstWp.lng, firstWp.lat]);
 
     walkSimIntervalRef.current = setInterval(() => {
       currentIndex++;
-      if (currentIndex >= route.waypoints.length) {
+      if (currentIndex >= r.waypoints.length) {
         if (walkSimIntervalRef.current) {
           clearInterval(walkSimIntervalRef.current);
           walkSimIntervalRef.current = null;
@@ -486,7 +509,7 @@ function DirectionsContent() {
         return;
       }
 
-      const wp = route.waypoints[currentIndex]!;
+      const wp = r.waypoints[currentIndex]!;
       const lng = wp.lng;
       const lat = wp.lat;
       setUserLocation([lng, lat]);
@@ -494,7 +517,7 @@ function DirectionsContent() {
       let closestIdx = 0;
       let minDistance = Infinity;
 
-      route.waypoints.forEach((wpVal, idx) => {
+      r.waypoints.forEach((wpVal, idx) => {
         const dist = haversineDistance([lng, lat], [wpVal.lng, wpVal.lat]);
         if (dist < minDistance) {
           minDistance = dist;
@@ -502,14 +525,14 @@ function DirectionsContent() {
         }
       });
 
-      const activeStep = Math.min(closestIdx, route.steps.length - 1);
+      const activeStep = Math.min(closestIdx, r.steps.length - 1);
       
       setCurrentStepIndex((prev) => {
         if (prev !== activeStep) {
           if (ttsInstanceRef.current) {
             ttsInstanceRef.current.cancel();
           }
-          const instruction = route.steps[activeStep].instruction;
+          const instruction = r.steps[activeStep].instruction;
           ttsInstanceRef.current = speakDirections([instruction], i18n.language, () => {});
           return activeStep;
         }
@@ -517,6 +540,112 @@ function DirectionsContent() {
       });
     }, 3500);
   };
+
+  const toggleWalkSimulation = () => {
+    const isSim = searchParams.get("sim") === "true";
+    if (!isSim) {
+      // Redirect to Main Gate coordinates with sim=true
+      router.push(`/app/directions/${destinationId}?name=${encodeURIComponent(destinationName)}&dlat=${dlat}&dlng=${dlng}&olat=6.8199&olng=3.4564&sim=true`);
+      return;
+    }
+
+    if (isSimulatingWalk) {
+      stopWalkSimulation();
+    } else if (route) {
+      startWalkSimulation(route);
+    }
+  };
+
+  // Auto-play walk simulation if sim=true query param is present
+  useEffect(() => {
+    const isSim = searchParams.get("sim") === "true";
+    if (isSim && route && !isSimulatingWalk && !hasArrived) {
+      startWalkSimulation(route);
+    }
+  }, [route, searchParams]);
+
+  // WebSocket shuttle location updates and API sync
+  useEffect(() => {
+    if (!mounted) return;
+
+    // Connect to Socket.IO
+    connectSocket();
+
+    // Fetch initial active shuttles
+    apiClient.get<{ success: boolean; data: { shuttles: ShuttleData[] } }>("/api/shuttles/active")
+      .then((res) => {
+        if (res.success && res.data?.shuttles) {
+          setShuttles(res.data.shuttles);
+        }
+      })
+      .catch((err) => console.warn("Visitor failed to load initial shuttles:", err));
+
+    // WebSocket event listener
+    const handleShuttleMoved = (data: ShuttleData) => {
+      setShuttles((prev) => {
+        const idx = prev.findIndex((s) => s.shuttleId === data.shuttleId);
+        if (idx >= 0) {
+          const next = [...prev];
+          next[idx] = data;
+          return next;
+        }
+        return [data, ...prev];
+      });
+    };
+
+    onEvent<ShuttleData>("shuttle_moved", handleShuttleMoved);
+
+    return () => {
+      offEvent("shuttle_moved", handleShuttleMoved);
+      disconnectSocket();
+    };
+  }, [mounted]);
+
+  // Synchronize shuttle markers on visitor map
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    // Remove any markers not in active list
+    const activeIds = new Set(shuttles.map(s => s.shuttleId));
+    Object.keys(shuttleMarkersRef.current).forEach((key) => {
+      if (!activeIds.has(key)) {
+        shuttleMarkersRef.current[key].remove();
+        delete shuttleMarkersRef.current[key];
+      }
+    });
+
+    shuttles.forEach((shuttle) => {
+      const { shuttleId, lat, lng, driverName, passengerLoad } = shuttle;
+      if (!lat || !lng) return;
+
+      const markerKey = shuttleId;
+      const existing = shuttleMarkersRef.current[markerKey];
+
+      if (existing) {
+        existing.setLngLat([lng, lat]);
+      } else {
+        const el = document.createElement("div");
+        el.className = "flex items-center justify-center h-7 w-7 bg-orange-500 text-white rounded-full border border-white shadow-lg text-xs cursor-pointer hover:bg-orange-600 transition-colors z-20";
+        el.innerText = "🚌";
+
+        const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`
+          <div class="text-slate-800 p-1 text-[10px] leading-tight">
+            <h4 class="font-bold text-xs text-orange-600">${shuttleId}</h4>
+            <p class="mt-0.5"><strong>Driver:</strong> ${driverName || "N/A"}</p>
+            <p><strong>Load:</strong> ${passengerLoad} pax</p>
+          </div>
+        `);
+
+        const marker = new maplibregl.Marker({ element: el })
+          .setLngLat([lng, lat])
+          .setPopup(popup)
+          .addTo(map);
+
+        shuttleMarkersRef.current[markerKey] = marker;
+      }
+    });
+  }, [shuttles]);
 
   const handleArrival = () => {
     if (ttsInstanceRef.current) {

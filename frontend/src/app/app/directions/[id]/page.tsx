@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { ArrowLeft, Volume2, VolumeX, CheckCircle, Navigation, MapPin } from "lucide-react";
 
 import { useNetworkStatus, useMounted } from "@/hooks";
+import { getPOIs, getRoutes } from "@/data/campGeoJSON";
 import { findOfflineRoute, haversineDistance, type RouteResult } from "@/lib/offlineRouter";
 import { speakDirections, isSpeechSynthesisSupported } from "@/lib/speechEngine";
 import { connectSocket, disconnectSocket, onEvent, offEvent } from "@/lib/socketClient";
@@ -60,6 +61,12 @@ function DirectionsContent() {
 
   const [shuttles, setShuttles] = useState<ShuttleData[]>([]);
   const shuttleMarkersRef = useRef<Record<string, maplibregl.Marker>>({});
+  const [shuttleIndices, setShuttleIndices] = useState<Record<string, number>>({
+    "shuttle-1": 0,
+    "shuttle-2": 0,
+    "shuttle-3": 0,
+    "shuttle-4": 0,
+  });
 
   // Read coordinates and name from URL query params
   const destinationId = params.id as string;
@@ -75,146 +82,156 @@ function DirectionsContent() {
       setLoading(true);
       setError(null);
 
-      const isSim = searchParams.get("sim") === "true";
-      let originLat = parseFloat(olatParam || "0");
-      let originLng = parseFloat(olngParam || "0");
+      try {
+        const isSim = searchParams.get("sim") === "true";
+        let originLat = parseFloat(olatParam || "0");
+        let originLng = parseFloat(olngParam || "0");
 
-      // Override start location to Main Gate if simulating for demo
-      if (isSim) {
-        originLat = 6.8199;
-        originLng = 3.4564;
-      } else if (!olatParam || !olngParam) {
-        try {
-          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              enableHighAccuracy: true,
-              timeout: 8000,
-            });
-          });
-          originLat = position.coords.latitude;
-          originLng = position.coords.longitude;
-        } catch (err) {
-          // Default to Redemption City center if geolocation fails
-          originLat = 6.8097;
-          originLng = 3.4588;
-        }
-      }
-
-      const origin = { lat: originLat, lng: originLng };
-      const destination = { lat: dlat, lng: dlng };
-
-      // Calculate distance to Redemption City center
-      const distToCamp = haversineDistance([originLng, originLat], [3.4588, 6.8097]);
-
-      if (distToCamp > 3000) {
-        // --- HYBRID ROUTING ---
-        // 1. External leg: Origin to Main Gate
-        let externalRoute: RouteResult | null = null;
-        if (mode === "online") {
+        // Override start location to Main Gate if simulating for demo
+        if (isSim) {
+          originLat = 6.8199;
+          originLng = 3.4564;
+        } else if (!olatParam || !olngParam) {
           try {
-            const response = await fetch("/api/directions", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                origin,
-                destination: { lat: 6.8199, lng: 3.4564 },
-                mode: "driving"
-              })
+            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: true,
+                timeout: 8000,
+              });
             });
-            const resJson = await response.json();
-            if (resJson.success && resJson.data) {
-              externalRoute = resJson.data;
-            }
+            originLat = position.coords.latitude;
+            originLng = position.coords.longitude;
           } catch (err) {
-            console.warn("External API routing failed, falling back to straight-line:", err);
+            // Default to Redemption City center if geolocation fails
+            originLat = 6.8097;
+            originLng = 3.4588;
           }
         }
 
-        // If online fetch failed or offline, generate straight-line to Main Gate
-        if (!externalRoute) {
-          const distance = Math.round(haversineDistance([originLng, originLat], [3.4564, 6.8199]));
-          externalRoute = {
-            routeId: "external-fallback",
-            mode: "driving",
-            distanceMeters: distance,
-            durationSeconds: Math.round(distance / 13.89), // driving speed ~ 50 km/h
-            waypoints: [
-              { lat: originLat, lng: originLng },
-              { lat: 6.8199, lng: 3.4564 }
-            ],
-            steps: [
-              {
-                instruction: `Drive towards Redemption City Main Gate for ${distance}m`,
-                distance_meters: distance
-              }
-            ],
-            isStraightLine: true
-          };
-        }
+        const origin = { lat: originLat, lng: originLng };
+        const destination = { lat: dlat, lng: dlng };
 
-        // 2. Internal leg: Main Gate to destination
-        const internalRoute = findOfflineRoute(
-          { lat: 6.8199, lng: 3.4564 },
-          destination,
-          "Main Gate",
-          destinationName
-        );
+        // Calculate distance to Redemption City center
+        const distToCamp = haversineDistance([originLng, originLat], [3.4588, 6.8097]);
 
-        // 3. Merge routes
-        const mergedWaypoints = [...externalRoute.waypoints, ...internalRoute.waypoints];
-        const mergedSteps = [
-          ...externalRoute.steps,
-          {
-            instruction: "Enter Redemption City Main Gate",
-            distance_meters: 0
-          },
-          ...internalRoute.steps
-        ];
+        if (distToCamp > 3000) {
+          // --- HYBRID ROUTING ---
+          // 1. External leg: Origin to Main Gate
+          if (mode === "offline" || !navigator.onLine) {
+            throw new Error("You are offline. Cannot calculate driving directions from outside Redemption City. Please check your internet connection.");
+          }
 
-        setRoute({
-          routeId: `hybrid-${Date.now()}`,
-          mode: "hybrid",
-          distanceMeters: externalRoute.distanceMeters + internalRoute.distanceMeters,
-          durationSeconds: externalRoute.durationSeconds + internalRoute.durationSeconds,
-          waypoints: mergedWaypoints,
-          steps: mergedSteps,
-          isStraightLine: externalRoute.isStraightLine || internalRoute.isStraightLine
-        });
-      } else {
-        // --- LOCAL ROUTING ---
-        if (mode === "online") {
-          try {
-            const response = await fetch("/api/directions", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                origin,
-                destination,
-                mode: "walking"
-              })
-            });
-            const resJson = await response.json();
-            if (resJson.success && resJson.data) {
-              setRoute({
-                routeId: resJson.data.routeId,
-                mode: resJson.data.mode || "walking",
-                distanceMeters: resJson.data.distanceMeters,
-                durationSeconds: resJson.data.durationSeconds,
-                waypoints: resJson.data.waypoints,
-                steps: resJson.data.steps,
-                isStraightLine: resJson.data.routeId === "straight-line",
+          let externalRoute: RouteResult | null = null;
+          if (mode === "online") {
+            try {
+              const response = await fetch("/api/directions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  origin,
+                  destination: { lat: 6.8199, lng: 3.4564 },
+                  mode: "driving"
+                })
               });
-            } else {
+              const resJson = await response.json();
+              if (resJson.success && resJson.data) {
+                externalRoute = resJson.data;
+              }
+            } catch (err) {
+              console.warn("External API routing failed, falling back to straight-line:", err);
+            }
+          }
+
+          // If online fetch failed or offline, generate straight-line to Main Gate
+          if (!externalRoute) {
+            const distance = Math.round(haversineDistance([originLng, originLat], [3.4564, 6.8199]));
+            externalRoute = {
+              routeId: "external-fallback",
+              mode: "driving",
+              distanceMeters: distance,
+              durationSeconds: Math.round(distance / 13.89), // driving speed ~ 50 km/h
+              waypoints: [
+                { lat: originLat, lng: originLng },
+                { lat: 6.8199, lng: 3.4564 }
+              ],
+              steps: [
+                {
+                  instruction: `Drive towards Redemption City Main Gate for ${distance}m`,
+                  distance_meters: distance
+                }
+              ],
+              isStraightLine: true
+            };
+          }
+
+          // 2. Internal leg: Main Gate to destination
+          const internalRoute = findOfflineRoute(
+            { lat: 6.8199, lng: 3.4564 },
+            destination,
+            "Main Gate",
+            destinationName
+          );
+
+          // 3. Merge routes
+          const mergedWaypoints = [...externalRoute.waypoints, ...internalRoute.waypoints];
+          const mergedSteps = [
+            ...externalRoute.steps,
+            {
+              instruction: "Enter Redemption City Main Gate",
+              distance_meters: 0
+            },
+            ...internalRoute.steps
+          ];
+
+          setRoute({
+            routeId: `hybrid-${Date.now()}`,
+            mode: "hybrid",
+            distanceMeters: externalRoute.distanceMeters + internalRoute.distanceMeters,
+            durationSeconds: externalRoute.durationSeconds + internalRoute.durationSeconds,
+            waypoints: mergedWaypoints,
+            steps: mergedSteps,
+            isStraightLine: externalRoute.isStraightLine || internalRoute.isStraightLine
+          });
+        } else {
+          // --- LOCAL ROUTING ---
+          if (mode === "online") {
+            try {
+              const response = await fetch("/api/directions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  origin,
+                  destination,
+                  mode: "walking"
+                })
+              });
+              const resJson = await response.json();
+              if (resJson.success && resJson.data) {
+                setRoute({
+                  routeId: resJson.data.routeId,
+                  mode: resJson.data.mode || "walking",
+                  distanceMeters: resJson.data.distanceMeters,
+                  durationSeconds: resJson.data.durationSeconds,
+                  waypoints: resJson.data.waypoints,
+                  steps: resJson.data.steps,
+                  isStraightLine: resJson.data.routeId === "straight-line",
+                });
+              } else {
+                calculateOfflineFallback(origin, destination);
+              }
+            } catch (err) {
               calculateOfflineFallback(origin, destination);
             }
-          } catch (err) {
+          } else {
             calculateOfflineFallback(origin, destination);
           }
-        } else {
-          calculateOfflineFallback(origin, destination);
         }
+      } catch (err: any) {
+        console.error("Routing calculation failed:", err);
+        setError(err.message || "An error occurred while calculating the route.");
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
 
     function calculateOfflineFallback(origin: any, destination: any) {
@@ -298,6 +315,67 @@ function DirectionsContent() {
           },
         });
 
+        // Add source for pre-traced roads
+        map.addSource("routes", {
+          type: "geojson",
+          data: {
+            type: "FeatureCollection",
+            features: getRoutes() as any,
+          },
+        });
+
+        // Add road lines layer (thin, slate color)
+        map.addLayer({
+          id: "route-lines",
+          type: "line",
+          source: "routes",
+          layout: {
+            "line-join": "round",
+            "line-cap": "round",
+          },
+          paint: {
+            "line-color": "#475569",
+            "line-width": 2.5,
+            "line-opacity": 0.3,
+          },
+        });
+
+        // Add circle layer for the POIs so they have a dot
+        map.addSource("pois", {
+          type: "geojson",
+          data: {
+            type: "FeatureCollection",
+            features: getPOIs() as any,
+          },
+        });
+
+        map.addLayer({
+          id: "poi-circles",
+          type: "circle",
+          source: "pois",
+          paint: {
+            "circle-color": "#ff6b00",
+            "circle-radius": 6,
+            "circle-stroke-width": 1.5,
+            "circle-stroke-color": "rgba(255,255,255,0.35)",
+            "circle-opacity": 0.92,
+          },
+        });
+
+        // Add HTML labels above each POI
+        getPOIs().forEach((poi) => {
+          const el = document.createElement("div");
+          el.className = "pointer-events-none select-none";
+          el.innerHTML = `
+            <div class="pointer-events-none select-none px-1.5 py-0.5 rounded text-[10px] font-bold text-slate-200 bg-slate-900/90 border border-orange-500/30 shadow-md backdrop-blur-sm whitespace-nowrap mb-6 animate-in fade-in duration-200">
+              ${poi.properties.name}
+            </div>
+          `;
+          new maplibregl.Marker({ element: el, anchor: "bottom" })
+            .setLngLat(poi.geometry.coordinates)
+            .addTo(map);
+        });
+
         // Add markers for origin and destination
         const originCoords = [route.waypoints[0].lng, route.waypoints[0].lat] as [number, number];
         const destCoords = [
@@ -358,6 +436,11 @@ function DirectionsContent() {
   // Geolocation watchPosition GPS tracking effect
   useEffect(() => {
     if (!mounted || !("geolocation" in navigator)) return;
+
+    const isSim = searchParams.get("sim") === "true" || isSimulatingWalk;
+    if (isSim) {
+      return; // Do not start GPS watcher if simulation is active
+    }
 
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
@@ -424,7 +507,7 @@ function DirectionsContent() {
     return () => {
       navigator.geolocation.clearWatch(watchId);
     };
-  }, [mounted, route, hasArrived, isSpeaking, i18n.language]);
+  }, [mounted, route, hasArrived, isSpeaking, i18n.language, searchParams, isSimulatingWalk]);
 
   // Synchronize user pulsing marker on map
   useEffect(() => {
@@ -563,6 +646,57 @@ function DirectionsContent() {
       startWalkSimulation(route);
     }
   }, [route, searchParams]);
+
+  // Local shuttle simulation during walk simulation
+  useEffect(() => {
+    if (!isSimulatingWalk) return;
+
+    const simDrivers = [
+      { id: "shuttle-1", name: "Ade", route: [[3.4564458, 6.8198983], [3.4564295, 6.8199064], [3.4571496, 6.8185982], [3.4571332, 6.8185576], [3.4571332, 6.8185901], [3.4574025, 6.8176721], [3.4573915, 6.8168145]], zone: "Zone A" },
+      { id: "shuttle-2", name: "Olumide", route: [[3.456378, 6.8199736], [3.4573852, 6.8176968], [3.4574709, 6.8170158], [3.4568388, 6.8148986], [3.4579853, 6.8144624], [3.4577508, 6.8125066], [3.4573048, 6.8112875], [3.4567644, 6.810407]], zone: "Zone B" },
+      { id: "shuttle-3", name: "Chioma", route: [[3.4612929, 6.8103232], [3.4611512, 6.8098925], [3.4619833, 6.809374], [3.4616646, 6.8084687], [3.4612929, 6.8077831]], zone: "Zone C" },
+      { id: "shuttle-4", name: "Musa", route: [[3.4593595, 6.7628041], [3.4589156, 6.762744], [3.4589694, 6.7618959], [3.4687606, 6.7622632], [3.4688233, 6.7620483], [3.4691223, 6.76218], [3.469788, 6.7607643]], zone: "Zone D" }
+    ];
+
+    const shuttleTimer = setInterval(() => {
+      simDrivers.forEach((drv) => {
+        setShuttleIndices((prev) => {
+          const currentIndex = prev[drv.id] ?? 0;
+          const nextIndex = (currentIndex + 1) % drv.route.length;
+          const [lng, lat] = drv.route[nextIndex]!;
+
+          // Update local shuttles state
+          setShuttles((prevShuttles) => {
+            const data: ShuttleData = {
+              shuttleId: drv.id,
+              driverName: drv.name,
+              lat,
+              lng,
+              zone: drv.zone,
+              passengerLoad: Math.floor(Math.random() * 10) + 2,
+              lastCheckin: new Date().toLocaleTimeString(),
+            };
+            const idx = prevShuttles.findIndex((s) => s.shuttleId === drv.id);
+            if (idx >= 0) {
+              const next = [...prevShuttles];
+              next[idx] = data;
+              return next;
+            }
+            return [data, ...prevShuttles];
+          });
+
+          return {
+            ...prev,
+            [drv.id]: nextIndex,
+          };
+        });
+      });
+    }, 3500);
+
+    return () => {
+      clearInterval(shuttleTimer);
+    };
+  }, [isSimulatingWalk]);
 
   // WebSocket shuttle location updates and API sync
   useEffect(() => {

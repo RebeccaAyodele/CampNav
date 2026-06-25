@@ -336,11 +336,12 @@ export async function handleSession(
       const bearing = calculateSimpleBearing(CAMP_CENTER.lat, CAMP_CENTER.lng, selected.lat, selected.lng);
       const translatedBearing = bearingDict[bearing] || bearing;
       const dist = Math.round(haversine(CAMP_CENTER.lat, CAMP_CENTER.lng, selected.lat, selected.lng));
+      const landmarkText = getLandmarkDirections(selected.name, selected.type, translatedBearing, dist, langCode);
 
       return [
         `END ${lang.directionsTitle(selected.name)}`,
         "",
-        lang.directionsText(translatedBearing, dist, selected.description ?? selected.name),
+        landmarkText,
         "",
         lang.thankYou
       ].join("\n");
@@ -419,4 +420,95 @@ function calculateSimpleBearing(lat1: number, lng1: number, lat2: number, lng2: 
   if (bearing < 247.5) return "southwest";
   if (bearing < 292.5) return "west";
   return "northwest";
+}
+
+// ── Landmark directions helper ──────────────────────────────────────
+
+function getLandmarkDirections(name: string, type: string, bearing: string, dist: number, langCode: string): string {
+  const lowerName = name.toLowerCase();
+  
+  if (langCode === "2") { // Yoruba
+    if (lowerName.includes("access bank")) {
+      return `Lati Main Gate, gba Ila-orun si Redemption Boulevard. Koja Conoil Station ni apa osi re, ki o si yi si apa otun lẹsẹkẹsẹ lẹhin CRM SuperMarket. Access Bank wa ni 50m siwaju si apa otun.`;
+    }
+    if (lowerName.includes("glory arena")) {
+      return `Lati Main Gate, gba ila-orun guusu si College Road. Koja Redeemed Christian Bible College ni apa osi re. Yi si apa osi lẹhin ẹnu-bode aabo. Glory Arena wa ni 100m siwaju si apa otun.`;
+    }
+    if (lowerName.includes("open heavens")) {
+      return `Lati Main Gate, tẹsiwaju si Ila-orun. Koja GT Bank ni apa osi re, lẹhinna yi si apa osi ni Open Heavens Junction. Ìyẹn ni ile nla pẹlu awọn ọwọn funfun ni apa otun rẹ.`;
+    }
+    if (lowerName.includes("health center") || lowerName.includes("redeemer's health")) {
+      return `Lati Main Gate, gba Ila-orun. Koja Emmanuel Park ni apa otun re, ki o si yi si apa otun lẹhin Conoil Station. Redeemer's Health Center wa ni 200m siwaju.`;
+    }
+    if (lowerName.includes("market") || lowerName.includes("canaan land")) {
+      return `Lati Bible College, gba Guusu lọ si agbegbe iṣowo. Koja Gethsemane Apartment ni apa osi re, lẹhinna yi si apa osi. Canaan Land Market wa ni apa otun rẹ.`;
+    }
+  }
+
+  if (langCode === "3") { // Hausa
+    if (lowerName.includes("access bank")) {
+      return `Daga Main Gate, nufi Gabas tare da Redemption Boulevard. Wuce Conoil Station a hagu, sannan ka juya dama nan da nan bayan CRM SuperMarket. Access Bank yana da mita 50 a dama.`;
+    }
+    if (lowerName.includes("glory arena")) {
+      return `Daga Main Gate, nufi Gabas maso Kudu akan College Road. Wuce Redeemed Christian Bible College a hagunka. Juya hagu bayan kofar tsaro. Glory Arena yana da mita 100 a dama.`;
+    }
+    if (lowerName.includes("open heavens")) {
+      return `Daga Main Gate, ci gaba da tafiya Gabas. Wuce GT Bank a hagunka, sannan ka juya hagu a Open Heavens Junction. Babban gini ne a damanka.`;
+    }
+    if (lowerName.includes("health center") || lowerName.includes("redeemer's health")) {
+      return `Daga Main Gate, nufi Gabas. Wuce Emmanuel Park a damanka, sannan ka juya dama bayan Conoil Station. Redeemer's Health Center yana mita 200 a gaba.`;
+    }
+  }
+
+  if (langCode === "4") { // Igbo
+    if (lowerName.includes("access bank")) {
+      return `Site na Main Gate, gaa n'ọwụwa anyanwụ na Redemption Boulevard. Gaa n'akụkụ Conoil Station n'aka ekpe gị, tụgharịa n'aka nri ozugbo CRM SuperMarket gachara. Access Bank dị mita 50 n'ihu n'aka nri.`;
+    }
+    if (lowerName.includes("glory arena")) {
+      return `Site na Main Gate, gaa na ndịda-ọwụwa anyanwụ na College Road. Gaa n'akụkụ Redeemed Christian Bible College n'aka ekpe gị. Tụgharịa n'aka ekpe mgbe nche gachara. Glory Arena dị mita 100 n'ihu n'aka nri.`;
+    }
+    if (lowerName.includes("open heavens")) {
+      return `Site na Main Gate, gaa n'ọwụwa anyanwụ. Gaa n'akụkụ GT Bank n'aka ekpe gị, tụgharịa n'aka ekpe na Open Heavens Junction. Ọ bụ nnukwu ụlọ ahụ dị n'aka nri gị.`;
+    }
+  }
+
+  if (langCode === "5") { // French
+    if (lowerName.includes("access bank")) {
+      return `Depuis la Main Gate, dirigez-vous vers l'Est sur Redemption Boulevard. Passez la station Conoil sur votre gauche, puis tournez à droite juste après CRM SuperMarket. Access Bank est à 50m sur votre droite.`;
+    }
+    if (lowerName.includes("glory arena")) {
+      return `Depuis la Main Gate, dirigez-vous vers le Sud-Est sur College Road. Passez le Redeemed Christian Bible College sur votre gauche. Tournez à gauche après la barrière de sécurité. Glory Arena est à 100m sur la droite.`;
+    }
+    if (lowerName.includes("open heavens")) {
+      return `Depuis la Main Gate, continuez vers l'Est. Passez GT Bank sur votre gauche, puis tournez à gauche au carrefour Open Heavens. C'est le grand bâtiment sur votre droite.`;
+    }
+  }
+
+  // English fallback
+  if (lowerName.includes("access bank")) {
+    return "From the Main Gate, head East along Redemption Boulevard. Pass Conoil Station on your left, then turn right immediately after CRM SuperMarket. Access Bank is 50m ahead on your right.";
+  }
+  if (lowerName.includes("glory arena")) {
+    return "From the Main Gate, head Southeast on College Road. Pass Redeemed Christian Bible College on your left. Turn left after the security gate. Glory Arena is 100m ahead on the right.";
+  }
+  if (lowerName.includes("open heavens")) {
+    return "From the Main Gate, continue East. Pass GT Bank on your left, then turn left at the Open Heavens Junction. It is the large building with the white pillars on your right.";
+  }
+  if (lowerName.includes("health center") || lowerName.includes("redeemer's health")) {
+    return "From the Main Gate, head East. Pass Emmanuel Park on your right, then turn right after Conoil Station. Redeemer's Health Center is 200m ahead.";
+  }
+  if (lowerName.includes("canaan land market") || lowerName.includes("market")) {
+    return "From Bible College, head South towards the commercial zone. Pass Gethsemane Apartment on your left, then turn left. Canaan Land Market is on your right.";
+  }
+  if (lowerName.includes("conoil")) {
+    return "From the Main Gate, head East on Redemption Boulevard. Pass Emmanuel Park on your right. Conoil Station is on your left, opposite the shopping complex.";
+  }
+  if (lowerName.includes("gt bank")) {
+    return "From the Main Gate, head East on Redemption Boulevard. GT Bank is on your left, immediately after the Post Office and before the Open Heavens Junction.";
+  }
+  if (lowerName.includes("bible college")) {
+    return "From the Main Gate, head Southeast on College Road. The Redeemed Christian Bible College Main Campus is on your left, opposite the youth hostel.";
+  }
+
+  return `Head ${bearing} for approximately ${dist}m.\nLocation type: ${type}.`;
 }

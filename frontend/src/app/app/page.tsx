@@ -14,7 +14,7 @@ import Fuse from "fuse.js";
 import { useTranslation } from "react-i18next";
 import { Search, Navigation, LocateFixed, Mic, AlertCircle, MapPin, X, ArrowRight } from "lucide-react";
 
-import { getPOIs, type GeoJSONPointFeature } from "@/data/campGeoJSON";
+import { getPOIs, getRoutes, type GeoJSONPointFeature } from "@/data/campGeoJSON";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { useMounted } from "@/hooks/useMounted";
 import { apiClient } from "@/lib/api";
@@ -215,6 +215,45 @@ function MapContent() {
           },
         });
 
+        // Add source for pre-traced roads
+        map.addSource("routes", {
+          type: "geojson",
+          data: {
+            type: "FeatureCollection",
+            features: getRoutes() as any,
+          },
+        });
+
+        // Add road lines layer
+        map.addLayer({
+          id: "route-lines",
+          type: "line",
+          source: "routes",
+          layout: {
+            "line-join": "round",
+            "line-cap": "round",
+          },
+          paint: {
+            "line-color": "#475569",
+            "line-width": 2,
+            "line-opacity": 0.25,
+          },
+        });
+
+        // Add HTML labels above each POI
+        getPOIs().forEach((poi) => {
+          const el = document.createElement("div");
+          el.className = "pointer-events-none select-none";
+          el.innerHTML = `
+            <div class="pointer-events-none select-none px-1.5 py-0.5 rounded text-[10px] font-bold text-slate-200 bg-slate-900/90 border border-orange-500/30 shadow-md backdrop-blur-sm whitespace-nowrap mb-6 animate-in fade-in duration-200">
+              ${poi.properties.name}
+            </div>
+          `;
+          new maplibregl.Marker({ element: el, anchor: "bottom" })
+            .setLngLat(poi.geometry.coordinates)
+            .addTo(map);
+        });
+
         // Interactive clicks on markers
         map.on("click", "poi-circles", (e) => {
           if (!map) return;
@@ -335,6 +374,11 @@ function MapContent() {
     return `/app/directions/${selectedPOI.id}?olat=${olat}&olng=${olng}&dlat=${selectedPOI.lat}&dlng=${selectedPOI.lng}&name=${encodeURIComponent(selectedPOI.name)}`;
   };
 
+  const getSimulateURL = () => {
+    if (!selectedPOI) return "";
+    return `/app/directions/${selectedPOI.id}?olat=6.8199&olng=3.4564&dlat=${selectedPOI.lat}&dlng=${selectedPOI.lng}&name=${encodeURIComponent(selectedPOI.name)}&sim=true`;
+  };
+
   return (
     <div className="relative h-full w-full flex flex-col">
       {/* Top Search Bar Card */}
@@ -445,14 +489,22 @@ function MapContent() {
               </p>
             )}
 
-            <button
-              onClick={() => router.push(getDirectionsURL())}
-              className="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-[#ff6b00] hover:bg-orange-900 text-white rounded-xl font-bold shadow-lg shadow-[#ff6b00]/20 transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99]"
-            >
-              <Navigation className="h-5 w-5" />
-              <span>{t("getDirections")}</span>
-              <ArrowRight className="h-4 w-4 ml-1" />
-            </button>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => router.push(getDirectionsURL())}
+                className="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold shadow-lg shadow-orange-600/10 transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99]"
+              >
+                <Navigation className="h-5 w-5" />
+                <span>Get Directions</span>
+              </button>
+
+              <button
+                onClick={() => router.push(getSimulateURL())}
+                className="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl font-bold shadow-sm transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99]"
+              >
+                <span>⚡ Simulate Demo Walk</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -15,7 +15,7 @@ import { Bus, Users, ClipboardList, Radio, MapPin, Navigation, ArrowRight, Alert
 
 import { apiClient } from "@/lib/api";
 import { onEvent, offEvent } from "@/lib/socketClient";
-import { getPOIs } from "@/data/campGeoJSON";
+import { getPOIs, getRoutes } from "@/data/campGeoJSON";
 import { config } from "@/config";
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -252,6 +252,45 @@ export default function DashboardPage() {
           "circle-stroke-color": "rgba(255,255,255,0.4)",
           "circle-opacity": 0.85,
         },
+      });
+
+      // Add source for pre-traced roads
+      map.addSource("routes", {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: getRoutes() as any,
+        },
+      });
+
+      // Add road lines layer
+      map.addLayer({
+        id: "route-lines",
+        type: "line",
+        source: "routes",
+        layout: {
+          "line-join": "round",
+          "line-cap": "round",
+        },
+        paint: {
+          "line-color": "#475569",
+          "line-width": 2,
+          "line-opacity": 0.25,
+        },
+      });
+
+      // Add HTML labels above each POI
+      getPOIs().forEach((poi) => {
+        const el = document.createElement("div");
+        el.className = "pointer-events-none select-none";
+        el.innerHTML = `
+          <div class="pointer-events-none select-none px-1.5 py-0.5 rounded text-[10px] font-bold text-slate-200 bg-slate-900/90 border border-orange-500/30 shadow-md backdrop-blur-sm whitespace-nowrap mb-6 animate-in fade-in duration-200">
+            ${poi.properties.name}
+          </div>
+        `;
+        new maplibregl.Marker({ element: el, anchor: "bottom" })
+          .setLngLat(poi.geometry.coordinates)
+          .addTo(map);
       });
 
       // Click popup on POIs

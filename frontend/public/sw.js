@@ -13,7 +13,7 @@
  *   - Stale-while-revalidate for HTML pages
  */
 
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const CACHE_NAME = `campnav-${CACHE_VERSION}`;
 
 const STATIC_ASSETS = [
@@ -69,6 +69,16 @@ self.addEventListener("fetch", (event) => {
 
   // Handle GET requests only
   if (request.method !== "GET") {
+    return;
+  }
+
+  // Never intercept Next.js framework assets or development internals.
+  // These files are versioned by Next and stale cached copies break CSS/JS loading.
+  if (
+    url.pathname.startsWith("/_next/") ||
+    url.pathname.startsWith("/__nextjs") ||
+    url.pathname.includes("webpack-hmr")
+  ) {
     return;
   }
 

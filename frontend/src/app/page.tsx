@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Menu, Phone, Delete, RotateCcw } from "lucide-react";
+import { ArrowUpRight, BatteryFull, Delete, Menu, Phone, RotateCcw, Signal } from "lucide-react";
 import { ROUTES } from "@/constants";
 import { config } from "@/config";
 
@@ -276,21 +276,21 @@ export default function HomePage() {
               </Link>
               <Link
                 href={ROUTES.DASHBOARD_LOGIN}
-                className="inline-flex items-center justify-center rounded-xl border border-white/18 bg-white/6 px-5 py-3.5 text-xs font-semibold uppercase tracking-[0.12em] text-white transition-all hover:bg-white hover:text-[#1a1c1e] sm:px-7 sm:py-4 sm:text-sm sm:tracking-[0.18em]"
+                className="inline-flex items-center justify-center rounded-xl border border-white/[0.18] bg-white/[0.06] px-5 py-3.5 text-xs font-semibold uppercase tracking-[0.12em] text-white transition-all hover:bg-white hover:text-[#1a1c1e] sm:px-7 sm:py-4 sm:text-sm sm:tracking-[0.18em]"
               >
                 Admin Login
               </Link>
             </div>
           </div>
 
-          <div className="campnav-reveal pointer-events-none flex min-h-52 items-center justify-center sm:min-h-65 lg:min-h-0">
+          <div className="campnav-reveal pointer-events-none flex min-h-52 items-center justify-center sm:min-h-[16.25rem] lg:min-h-0">
             <Image
               src="/golden-globe.png"
               alt=""
               width={720}
               height={720}
               priority
-              className="h-auto w-full max-w-72 object-contain drop-shadow-[0_28px_80px_rgba(255,107,0,0.32)] sm:max-w-115 lg:max-w-none"
+              className="h-auto w-full max-w-72 object-contain drop-shadow-[0_28px_80px_rgba(255,107,0,0.32)] sm:max-w-[28.75rem] lg:max-w-none"
             />
           </div>
         </div>
@@ -346,8 +346,14 @@ export default function HomePage() {
               <div className="w-full bg-[#b9c8a1] text-[#1c2e17] font-mono border-4 border-slate-700 rounded-lg p-2.5 h-[190px] flex flex-col justify-between shadow-inner relative text-[11px] leading-tight select-none">
                 {/* Header signal/battery */}
                 <div className="flex justify-between items-center text-[9px] border-b border-[#1c2e17]/25 pb-1 uppercase font-bold">
-                  <span>📶 RCCG Link</span>
-                  <span>🔋 100%</span>
+                  <span className="inline-flex items-center gap-1">
+                    <Signal className="h-2.5 w-2.5" aria-hidden="true" />
+                    RCCG Link
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <BatteryFull className="h-2.5 w-2.5" aria-hidden="true" />
+                    100%
+                  </span>
                 </div>
                 
                 {/* Screen Content */}
@@ -487,7 +493,7 @@ export default function HomePage() {
                   fill
                   sizes="(min-width: 768px) 66vw, 100vw"
                 />
-                <div className="absolute inset-0 flex items-end bg-linear-to-t from-black/60 via-transparent to-transparent p-6 opacity-0 transition-opacity group-hover:opacity-100 sm:p-10">
+                <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/60 via-transparent to-transparent p-6 opacity-0 transition-opacity group-hover:opacity-100 sm:p-10">
                   <span className="text-white font-headline-sm">Precise Topographic Intelligence</span>
                 </div>
               </div>
@@ -496,12 +502,12 @@ export default function HomePage() {
                   <h3 className="text-2xl font-black text-[#1a1c1e] sm:text-3xl">Staff Coordination</h3>
                   <p className="text-[#5a4136] mt-2">Manage shuttle routes and incident reporting from a central Command Center.</p>
                 </div>
-                <span className="text-3xl text-[#ffb693] sm:text-4xl">↗</span>
+                <ArrowUpRight className="h-9 w-9 shrink-0 text-[#ffb693] sm:h-10 sm:w-10" aria-hidden="true" />
               </div>
             </div>
 
             <div className="group cursor-pointer">
-              <div className="relative mb-8 overflow-hidden rounded-3xl aspect-4/5 bg-[#f3f3f6]">
+              <div className="relative mb-8 aspect-[4/5] overflow-hidden rounded-3xl bg-[#f3f3f6]">
                 <Image
                   alt="Aerial campsite view"
                   className="object-cover transition-transform duration-700 group-hover:scale-105"

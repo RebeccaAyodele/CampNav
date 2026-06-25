@@ -251,7 +251,7 @@ function MapContent() {
           `;
           new maplibregl.Marker({ element: el, anchor: "bottom" })
             .setLngLat(poi.geometry.coordinates)
-            .addTo(map);
+            .addTo(map!);
         });
 
         // Interactive clicks on markers

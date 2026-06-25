@@ -373,7 +373,7 @@ function DirectionsContent() {
           `;
           new maplibregl.Marker({ element: el, anchor: "bottom" })
             .setLngLat(poi.geometry.coordinates)
-            .addTo(map);
+            .addTo(map!);
         });
 
         // Add markers for origin and destination
@@ -386,13 +386,13 @@ function DirectionsContent() {
         // Origin Marker (green dot)
         const startEl = document.createElement("div");
         startEl.className = "h-4 w-4 bg-emerald-500 border-2 border-white rounded-full shadow-md";
-        new maplibregl.Marker({ element: startEl }).setLngLat(originCoords).addTo(map);
+        new maplibregl.Marker({ element: startEl }).setLngLat(originCoords).addTo(map!);
 
         // Destination Marker (red pin)
         const endEl = document.createElement("div");
         endEl.className = "text-rose-600 animate-bounce";
         endEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8"><path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742c1.085-.77 2.874-2.205 3.86-4.582C18.57 14.88 19 12.879 19 10.5c0-4.693-3.693-8.5-8.5-8.5s-8.5 3.807-8.5 8.5c0 2.379.43 4.38 1.414 6.746 1.01 2.43 2.868 3.962 3.94 4.777a16.95 16.95 0 001.203.829zm1.71-12.851a1.25 1.25 0 11-2.5 0 1.25 1.25 0 012.5 0z" clip-rule="evenodd" /></svg>`;
-        new maplibregl.Marker({ element: endEl }).setLngLat(destCoords).addTo(map);
+        new maplibregl.Marker({ element: endEl }).setLngLat(destCoords).addTo(map!);
 
         // Fit bounds to show the entire route
         const bounds = new maplibregl.LngLatBounds();

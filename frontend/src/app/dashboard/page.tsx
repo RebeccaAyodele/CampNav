@@ -33,6 +33,13 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 const DEFAULT_CENTER: [number, number] = [3.4588, 6.8097];
 
+const SIM_DRIVERS = [
+  { id: "shuttle-1", name: "Ade", route: [[3.4564458, 6.8198983], [3.4564295, 6.8199064], [3.4571496, 6.8185982], [3.4571332, 6.8185576], [3.4571332, 6.8185901], [3.4574025, 6.8176721], [3.4573915, 6.8168145]], zone: "Zone A", label: "Main Gate -> Access Bank" },
+  { id: "shuttle-2", name: "Olumide", route: [[3.456378, 6.8199736], [3.4573852, 6.8176968], [3.4574709, 6.8170158], [3.4568388, 6.8148986], [3.4579853, 6.8144624], [3.4577508, 6.8125066], [3.4573048, 6.8112875], [3.4567644, 6.810407]], zone: "Zone B", label: "Main Gate -> Glory Arena" },
+  { id: "shuttle-3", name: "Chioma", route: [[3.4612929, 6.8103232], [3.4611512, 6.8098925], [3.4619833, 6.809374], [3.4616646, 6.8084687], [3.4612929, 6.8077831]], zone: "Zone C", label: "Bible College -> Market" },
+  { id: "shuttle-4", name: "Musa", route: [[3.4593595, 6.7628041], [3.4589156, 6.762744], [3.4589694, 6.7618959], [3.4687606, 6.7622632], [3.4688233, 6.7620483], [3.4691223, 6.76218], [3.469788, 6.7607643]], zone: "Zone D", label: "New Auditorium -> Simawa" }
+] as const;
+
 interface ShuttleData {
   shuttleId: string;
   driverName?: string;
@@ -93,19 +100,47 @@ export default function DashboardPage() {
       return;
     }
 
-    const simDrivers = [
-      { id: "shuttle-1", name: "Ade", route: [[3.4564458, 6.8198983], [3.4564295, 6.8199064], [3.4571496, 6.8185982], [3.4571332, 6.8185576], [3.4571332, 6.8185901], [3.4574025, 6.8176721], [3.4573915, 6.8168145]], zone: "Zone A" },
-      { id: "shuttle-2", name: "Olumide", route: [[3.456378, 6.8199736], [3.4573852, 6.8176968], [3.4574709, 6.8170158], [3.4568388, 6.8148986], [3.4579853, 6.8144624], [3.4577508, 6.8125066], [3.4573048, 6.8112875], [3.4567644, 6.810407]], zone: "Zone B" },
-      { id: "shuttle-3", name: "Chioma", route: [[3.4612929, 6.8103232], [3.4611512, 6.8098925], [3.4619833, 6.809374], [3.4616646, 6.8084687], [3.4612929, 6.8077831]], zone: "Zone C" },
-      { id: "shuttle-4", name: "Musa", route: [[3.4593595, 6.7628041], [3.4589156, 6.762744], [3.4589694, 6.7618959], [3.4687606, 6.7622632], [3.4688233, 6.7620483], [3.4691223, 6.76218], [3.469788, 6.7607643]], zone: "Zone D" }
-    ];
-
     shuttleSimIntervalRef.current = setInterval(() => {
-      simDrivers.forEach((drv) => {
+      SIM_DRIVERS.forEach((drv) => {
         setShuttleIndices((prev) => {
           const currentIndex = prev[drv.id] ?? 0;
           const nextIndex = (currentIndex + 1) % drv.route.length;
           const [lng, lat] = drv.route[nextIndex]!;
+          const passengerLoad = Math.floor(Math.random() * 15) + 3;
+          const checkin: ShuttleData = {
+            shuttleId: drv.id,
+            driverName: drv.name,
+            lat,
+            lng,
+            zone: drv.zone,
+            passengerLoad,
+            lastCheckin: new Date().toISOString(),
+          };
+
+          setShuttles((current) => {
+            const idx = current.findIndex((s) => s.shuttleId === checkin.shuttleId);
+            if (idx >= 0) {
+              const next = [...current];
+              next[idx] = checkin;
+              return next;
+            }
+            return [checkin, ...current];
+          });
+
+          setLogs((current) => [
+            {
+              type: "shuttle_checkin",
+              description: `${drv.id} simulated check-in at ${drv.zone} (${passengerLoad} pax)`,
+              timestamp: checkin.lastCheckin,
+            },
+            ...current.slice(0, 19),
+          ]);
+
+          setStats((current) => ({
+            ...current,
+            activeShuttles: Math.max(current.activeShuttles, SIM_DRIVERS.length),
+            totalCheckins: current.totalCheckins + 1,
+          }));
 
           // Fire real HTTP check-in posts to backend (which broadcasts via WebSocket)
           fetch(`${config.api.baseUrl}/api/shuttles/checkin`, {
@@ -119,7 +154,7 @@ export default function DashboardPage() {
               lat,
               lng,
               zone: drv.zone,
-              passengerLoad: Math.floor(Math.random() * 15) + 3,
+              passengerLoad,
             }),
           }).catch((err) => console.error("Telemetry Sim check-in failed:", err));
 
@@ -348,7 +383,7 @@ export default function DashboardPage() {
         existing.setLngLat([lng, lat]);
       } else {
         const el = document.createElement("div");
-        el.className = "flex items-center justify-center h-8 w-8 bg-orange-600 text-white rounded-full border-2 border-white shadow-lg text-sm cursor-pointer hover:bg-blue-700 transition-colors";
+        el.className = "flex items-center justify-center h-8 w-8 bg-[var(--dashboard-accent)] text-white border-2 border-white text-lg leading-none cursor-pointer shadow-sm";
         el.innerText = "🚌";
 
         const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`
@@ -396,8 +431,8 @@ export default function DashboardPage() {
         existing.setLngLat([lng, lat]);
       } else {
         const el = document.createElement("div");
-        el.className = "flex items-center justify-center h-8 w-8 bg-rose-600 text-white rounded-full border-2 border-white shadow-lg text-sm cursor-pointer animate-bounce hover:bg-rose-700 transition-colors";
-        el.innerText = "🚨";
+        el.className = "flex items-center justify-center h-8 w-8 bg-[var(--dashboard-alert)] text-white border-2 border-white text-sm font-black cursor-pointer shadow-sm";
+        el.innerText = "!";
 
         const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`
           <div class="text-slate-800 p-1 text-xs max-w-[200px]">
@@ -473,52 +508,52 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <div className="flex flex-col gap-6 min-h-full lg:h-full lg:min-h-0">
+    <div className="flex flex-col gap-4 min-h-full lg:h-full lg:min-h-0">
       {/* Page Title */}
-      <div className="shrink-0 flex items-center justify-between">
+      <div className="shrink-0 flex flex-col gap-3 border-b dash-divider pb-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-black text-white">{t("dashboard")}</h1>
-          <p className="text-sm text-slate-400 font-medium mt-0.5">
+          <h1 className="dash-title text-2xl">Field Operations Overview</h1>
+          <p className="dash-subtitle mt-0.5">
             {t("dashboardSubtitle")}
           </p>
         </div>
-        <div className="flex items-center gap-1 text-xs font-bold text-orange-400 bg-orange-500/10 border border-orange-500/25 px-3.5 py-1.5 rounded-full">
-          <Radio className="h-4 w-4 animate-pulse text-orange-400" />
-          <span>LIVE TRACKING</span>
+        <div className="dash-badge flex w-fit items-center gap-1 px-3.5 py-1.5">
+          <Radio className={`h-4 w-4 text-[var(--dashboard-accent-dark)] ${isSimulatingShuttles ? "animate-pulse" : ""}`} />
+          <span>{isSimulatingShuttles ? "SIMULATION LIVE" : "LIVE TRACKING"}</span>
         </div>
       </div>
 
       {/* KPI Cards */}
       <div className="shrink-0 grid gap-4 grid-cols-1 sm:grid-cols-3">
         {/* Active Shuttles Card */}
-        <div className="bg-[#0d1e4c]/40 border border-white/10 hover:border-orange-500/20 transition-all duration-300 rounded-2xl p-5 shadow-lg flex items-center justify-between group">
+        <div className="dash-panel flex items-center justify-between p-5">
           <div className="space-y-1">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t("activeShuttles")}</p>
-            <p className="text-3xl font-black text-white">{stats.activeShuttles}</p>
+            <p className="dash-label">{t("activeShuttles")}</p>
+            <p className="text-3xl font-black text-[var(--dashboard-text)]">{stats.activeShuttles}</p>
           </div>
-          <div className="p-3.5 bg-orange-500/10 rounded-xl text-orange-400 group-hover:bg-orange-500/20 transition-colors">
+          <div className="text-[var(--dashboard-accent-dark)]">
             <Bus className="h-6 w-6" />
           </div>
         </div>
 
         {/* Open Cases Card */}
-        <div className="bg-[#0d1e4c]/40 border border-white/10 hover:border-orange-500/20 transition-all duration-300 rounded-2xl p-5 shadow-lg flex items-center justify-between group">
+        <div className="dash-panel flex items-center justify-between p-5">
           <div className="space-y-1">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t("lostPersonCases")}</p>
-            <p className="text-3xl font-black text-rose-400">{stats.openLostPersons}</p>
+            <p className="dash-label">{t("lostPersonCases")}</p>
+            <p className="text-3xl font-black text-[var(--dashboard-alert)]">{stats.openLostPersons}</p>
           </div>
-          <div className="p-3.5 bg-rose-500/10 rounded-xl text-rose-400 group-hover:bg-rose-500/20 transition-colors">
+          <div className="text-[var(--dashboard-alert)]">
             <Users className="h-6 w-6" />
           </div>
         </div>
 
         {/* Check-ins Card */}
-        <div className="bg-[#0d1e4c]/40 border border-white/10 hover:border-orange-500/20 transition-all duration-300 rounded-2xl p-5 shadow-lg flex items-center justify-between group">
+        <div className="dash-panel flex items-center justify-between p-5">
           <div className="space-y-1">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t("totalCheckins")}</p>
-            <p className="text-3xl font-black text-emerald-400">{stats.totalCheckins}</p>
+            <p className="dash-label">{t("totalCheckins")}</p>
+            <p className="text-3xl font-black text-[var(--dashboard-success)]">{stats.totalCheckins}</p>
           </div>
-          <div className="p-3.5 bg-emerald-500/10 rounded-xl text-emerald-400 group-hover:bg-emerald-500/20 transition-colors">
+          <div className="text-[var(--dashboard-success)]">
             <ClipboardList className="h-6 w-6" />
           </div>
         </div>
@@ -527,32 +562,32 @@ export default function DashboardPage() {
       {/* Main Grid View */}
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Live Control Map */}
-        <div className="lg:col-span-2 bg-[#0d1e4c]/20 border border-white/10 rounded-3xl overflow-hidden shadow-2xl relative min-h-[350px]">
-          <div className="absolute top-4 left-4 z-10 bg-[#071133]/90 backdrop-blur border border-white/10 rounded-xl px-4 py-2 text-xs font-bold">
+        <div className="dash-panel relative min-h-[350px] overflow-hidden lg:col-span-2">
+          <div className="absolute bottom-4 left-4 z-10 border border-[var(--dashboard-border)] bg-[var(--dashboard-panel)] px-4 py-2 text-xs font-black uppercase">
             Live Field Operations Map
           </div>
-          <div ref={mapContainerRef} className="h-full w-full relative overflow-hidden rounded-3xl" />
+          <div ref={mapContainerRef} className="relative h-full w-full overflow-hidden opacity-80" />
         </div>
 
         {/* Right column: Simulator Controls + Live Activity Feed */}
         <div className="flex flex-col gap-6 lg:col-span-1 min-h-0">
           {/* Simulation Controller Panel */}
-          <div className="bg-[#0d1e4c]/40 border border-orange-500/20 rounded-3xl p-5 shadow-2xl flex flex-col shrink-0">
+          <div className="dash-panel flex shrink-0 flex-col p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="font-extrabold text-sm text-slate-200 tracking-wide uppercase">
-                  ⚡ Telemetry Simulator
+                <h3 className="text-sm font-extrabold uppercase tracking-wide text-[var(--dashboard-text)]">
+                  Telemetry Simulator
                 </h3>
-                <p className="text-[10px] text-slate-400 font-bold mt-0.5">
+                <p className="mt-0.5 text-[10px] font-bold text-[var(--dashboard-muted)]">
                   Simulate live GPS check-ins from multiple routes
                 </p>
               </div>
               <button
                 onClick={() => setIsSimulatingShuttles((prev) => !prev)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                className={`px-3 py-1.5 text-xs font-bold transition-colors ${
                   isSimulatingShuttles
-                    ? "bg-orange-500 text-white shadow-lg shadow-orange-500/20 animate-pulse"
-                    : "bg-white/10 text-slate-300 border border-white/5 hover:bg-white/20"
+                    ? "dash-button-primary"
+                    : "dash-button-secondary"
                 }`}
               >
                 {isSimulatingShuttles ? "SIM ACTIVE" : "START SIM"}
@@ -560,19 +595,16 @@ export default function DashboardPage() {
             </div>
             
             <div className="space-y-2 text-xs">
-              {[
-                { name: "Shuttle 1 (Ade)", route: "Main Gate ➔ Access Bank" },
-                { name: "Shuttle 2 (Olumide)", route: "Main Gate ➔ Glory Arena" },
-                { name: "Shuttle 3 (Chioma)", route: "Bible College ➔ Market" },
-                { name: "Shuttle 4 (Musa)", route: "New Auditorium ➔ Simawa" }
-              ].map((sh, idx) => (
-                <div key={idx} className="flex items-center justify-between p-2 bg-white/5 border border-white/5 rounded-xl">
+              {SIM_DRIVERS.map((sh) => (
+                <div key={sh.id} className="dash-panel-muted flex items-center justify-between p-2">
                   <div className="flex items-center gap-2">
-                    <span className={`h-2 w-2 rounded-full ${isSimulatingShuttles ? "bg-emerald-500 animate-ping" : "bg-slate-600"}`} />
-                    <span className="font-bold text-slate-200">{sh.name}</span>
+                  <span className={`flex h-6 w-6 items-center justify-center ${isSimulatingShuttles ? "text-[var(--dashboard-success)]" : "text-[var(--dashboard-soft)]"}`}>
+                    <Bus className="h-4 w-4" />
+                  </span>
+                    <span className="font-bold text-[var(--dashboard-text)]">Shuttle {sh.id.split("-")[1]} ({sh.name})</span>
                   </div>
-                  <span className="text-[10px] font-semibold text-slate-400 truncate max-w-[130px]">
-                    {sh.route}
+                  <span className="max-w-[130px] truncate text-[10px] font-semibold text-[var(--dashboard-muted)]">
+                    {sh.label}
                   </span>
                 </div>
               ))}
@@ -580,9 +612,9 @@ export default function DashboardPage() {
           </div>
 
           {/* Live Log Activity Feed */}
-          <div className="bg-[#0d1e4c]/20 border border-white/10 rounded-3xl p-5 shadow-2xl flex-1 flex flex-col min-h-[300px]">
-            <h3 className="font-extrabold text-sm text-slate-300 mb-4 tracking-wide uppercase shrink-0 flex items-center gap-2">
-              <Radio className="h-4.5 w-4.5 text-orange-400 animate-pulse" />
+          <div className="dash-panel flex min-h-[300px] flex-1 flex-col p-5">
+            <h3 className="mb-4 flex shrink-0 items-center gap-2 text-sm font-extrabold uppercase tracking-wide text-[var(--dashboard-text)]">
+              <Radio className="h-4 w-4 text-[var(--dashboard-accent-dark)]" />
               <span>{t("activityLog")}</span>
             </h3>
 
@@ -591,13 +623,13 @@ export default function DashboardPage() {
                 logs.map((log, idx) => {
                   const isCheckin = log.type === "shuttle_checkin";
                   return (
-                    <div key={idx} className="flex gap-3 text-xs items-start p-3 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 transition-colors">
-                      <span className={`text-base shrink-0 ${isCheckin ? "text-orange-400" : "text-rose-400"}`}>
+                    <div key={idx} className="dash-panel-muted flex items-start gap-3 p-3 text-xs">
+                      <span className={`shrink-0 font-black ${isCheckin ? "text-[var(--dashboard-accent-dark)]" : "text-[var(--dashboard-alert)]"}`}>
                         {isCheckin ? "🚌" : "👤"}
                       </span>
                       <div className="min-w-0">
-                        <p className="font-bold text-slate-200 leading-relaxed break-words">{log.description}</p>
-                        <p className="text-[10px] text-slate-400 font-semibold mt-1">
+                        <p className="break-words font-bold leading-relaxed text-[var(--dashboard-text)]">{log.description}</p>
+                        <p className="mt-1 text-[10px] font-semibold text-[var(--dashboard-muted)]">
                           {new Date(log.timestamp).toLocaleTimeString()}
                         </p>
                       </div>
@@ -605,7 +637,7 @@ export default function DashboardPage() {
                   );
                 })
               ) : (
-                <div className="h-full flex items-center justify-center text-slate-500 font-semibold">
+                <div className="flex h-full items-center justify-center font-semibold text-[var(--dashboard-muted)]">
                   No activity reported yet
                 </div>
               )}
@@ -618,7 +650,7 @@ export default function DashboardPage() {
       <div className="shrink-0 grid gap-4 grid-cols-1 sm:grid-cols-2">
         <button
           onClick={() => router.push("/dashboard/shuttles")}
-          className="flex items-center justify-center gap-2 py-4 bg-orange-600 hover:bg-blue-700 text-white rounded-2xl font-bold shadow-lg shadow-orange-600/10 active:scale-[0.99] transition-all"
+          className="dash-button-primary flex items-center justify-center gap-2 py-4 active:scale-[0.99]"
         >
           <Bus className="h-5 w-5" />
           <span>{t("viewShuttles")}</span>
@@ -627,7 +659,7 @@ export default function DashboardPage() {
 
         <button
           onClick={() => router.push("/dashboard/lost-persons")}
-          className="flex items-center justify-center gap-2 py-4 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-bold shadow-lg shadow-rose-600/10 active:scale-[0.99] transition-all"
+          className="flex items-center justify-center gap-2 border border-[var(--dashboard-alert)] bg-[var(--dashboard-alert)] py-4 font-bold text-white active:scale-[0.99]"
         >
           <Users className="h-5 w-5" />
           <span>{t("viewLostPersons")}</span>

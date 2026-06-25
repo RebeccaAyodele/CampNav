@@ -8,7 +8,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
-import { Shield, Mail, Lock, RefreshCw, AlertCircle, ArrowLeft } from "lucide-react";
+import { Mail, Lock, RefreshCw, AlertCircle, ArrowLeft, ArrowRight, Compass } from "lucide-react";
 import { apiClient } from "@/lib/api";
 
 export default function LoginPage() {
@@ -35,7 +35,6 @@ export default function LoginPage() {
       if (response.success && response.data) {
         localStorage.setItem("authToken", response.data.token);
         localStorage.setItem("adminUser", JSON.stringify(response.data.user));
-        // Redirect to dashboard layout
         window.location.href = "/dashboard";
       } else {
         setError(response.error?.message || "Invalid credentials");
@@ -48,49 +47,43 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#071133] p-4 text-white">
-      {/* Background decoration elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
-        <div className="absolute -top-40 -left-40 h-96 w-96 rounded-full bg-orange-600 blur-3xl" />
-        <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-orange-600 blur-3xl" />
-      </div>
-
-      <div className="relative w-full max-w-md bg-[#0a1847]/75 backdrop-blur-xl border border-orange-500/30 rounded-3xl p-8 shadow-2xl space-y-6">
-        {/* Brand Header */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex p-3 bg-orange-500/10 border border-orange-500/25 rounded-2xl text-orange-400 mb-2">
-            <Shield className="h-8 w-8" />
+    <div className="dash-shell flex min-h-screen items-start justify-center p-4 pt-3 sm:items-center sm:pt-4">
+      <div className="relative w-full max-w-[330px] space-y-5">
+        <div className="text-center space-y-3">
+          <div className="inline-flex h-[53px] w-[51px] items-center justify-center bg-[var(--dashboard-accent)] text-[var(--dashboard-text)]">
+            <Compass className="h-7 w-7" />
           </div>
-          <h1 className="text-2xl font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-indigo-200">
-            CampNav Portal
+          <h1 className="text-2xl font-black italic uppercase tracking-wide text-[var(--dashboard-accent-dark)]">
+            CampNav
           </h1>
-          <p className="text-xs text-white/50 font-bold uppercase tracking-wider">
+          <p className="dash-label text-[var(--dashboard-text)]">
             {t("signInSubtitle")}
           </p>
         </div>
 
-        {/* Error Callout */}
         {error && (
-          <div className="bg-rose-500/20 border border-rose-500/30 text-rose-300 px-4 py-3 rounded-2xl flex items-start gap-2.5 text-sm animate-in fade-in duration-200">
-            <AlertCircle className="h-5 w-5 text-rose-400 shrink-0 mt-0.5" />
+          <div className="flex items-start gap-2.5 border border-[var(--dashboard-alert)] bg-[color-mix(in_srgb,var(--dashboard-alert)_8%,white)] px-4 py-3 text-sm text-[var(--dashboard-alert)]">
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
             <p className="font-semibold">{error}</p>
           </div>
         )}
 
-        {/* Login Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="dash-panel space-y-4 p-3.5">
+          <div className="flex items-center gap-2 border-b dash-divider pb-3">
+            <Lock className="h-5 w-5 text-[var(--dashboard-accent-dark)]" />
+            <h2 className="text-lg font-extrabold">Admin Authentication</h2>
+          </div>
+
           <div>
-            <label className="block text-xs font-bold text-orange-200 uppercase tracking-wider mb-2">
-              {t("email")}
-            </label>
+            <label className="dash-label mb-2 block">Operator Email</label>
             <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/30" />
+              <Mail className="absolute left-3 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-[var(--dashboard-muted)]" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@campnav.local"
-                className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-orange-400 font-semibold"
+                placeholder="name@event-org.com"
+                className="dash-field pl-10 pr-4 py-2.5 text-sm font-semibold"
                 required
                 disabled={loading}
               />
@@ -98,27 +91,33 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-orange-200 uppercase tracking-wider mb-2">
-              {t("password")}
-            </label>
+            <label className="dash-label mb-2 block">Access Key</label>
             <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/30" />
+              <Lock className="absolute left-3 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-[var(--dashboard-muted)]" />
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-orange-400 font-semibold"
+                placeholder="********"
+                className="dash-field pl-10 pr-4 py-2.5 text-sm font-semibold"
                 required
                 disabled={loading}
               />
             </div>
+          </div>
+
+          <div className="flex items-center justify-between text-xs">
+            <span className="inline-flex items-center gap-2 text-[var(--dashboard-muted)]">
+              <span className="h-3.5 w-3.5 border border-[var(--dashboard-border)] bg-[var(--dashboard-panel)]" />
+              Keep Session Active
+            </span>
+            <span className="font-bold text-[var(--dashboard-info)]">Reset Key</span>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 py-3.5 bg-orange-500 hover:bg-orange-600 disabled:bg-slate-700 text-white rounded-xl font-bold shadow-lg shadow-orange-500/20 active:scale-[0.99] transition-all"
+            className="dash-button-primary flex w-full items-center justify-center gap-3 py-3.5 text-sm uppercase tracking-wide disabled:opacity-60"
           >
             {loading ? (
               <>
@@ -126,16 +125,25 @@ export default function LoginPage() {
                 <span>{t("signingIn")}</span>
               </>
             ) : (
-              <span>{t("signIn")}</span>
+              <>
+                <span>Initialize Login</span>
+                <ArrowRight className="h-5 w-5" />
+              </>
             )}
           </button>
         </form>
 
-        {/* Back Link */}
-        <div className="pt-4 border-t border-white/5 text-center">
+        <div className="space-y-3 text-center">
+          <div className="mx-auto inline-flex items-center gap-2 border border-[var(--dashboard-border)] bg-[color-mix(in_srgb,var(--dashboard-alert)_5%,white)] px-4 py-2 text-[10px] font-black uppercase tracking-wider text-[var(--dashboard-alert)]">
+            <AlertCircle className="h-3.5 w-3.5" />
+            Public Registration Disabled
+          </div>
+          <p className="mx-auto max-w-[260px] text-sm leading-relaxed text-[var(--dashboard-accent-dark)]">
+            Unauthorized access attempts are logged. Contact your logistics coordinator for credentials.
+          </p>
           <Link
             href="/app"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-orange-400 hover:text-orange-300 uppercase tracking-widest transition-all hover:gap-2"
+            className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-[var(--dashboard-accent-dark)] transition-all hover:text-[var(--dashboard-text)]"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>{t("backToHome")}</span>

@@ -56,12 +56,27 @@ export default function RootLayout({
       <body className="antialiased bg-white">
         {children}
 
-        {/* Service Worker Registration — runs in dev + production */}
+        {/* Service worker registration */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               if ("serviceWorker" in navigator) {
                 window.addEventListener("load", () => {
+                  const isLocalDev = ["localhost", "127.0.0.1", ""].includes(window.location.hostname);
+
+                  if (isLocalDev) {
+                    navigator.serviceWorker.getRegistrations()
+                      .then(registrations => Promise.all(registrations.map(reg => reg.unregister())))
+                      .then(() => {
+                        if (window.caches) {
+                          return caches.keys().then(keys => Promise.all(keys.map(key => caches.delete(key))));
+                        }
+                      })
+                      .then(() => console.log("[CampNav SW] disabled for local development"))
+                      .catch(err => console.warn("[CampNav SW] local cleanup failed:", err));
+                    return;
+                  }
+
                   navigator.serviceWorker.register("/sw.js")
                     .then(reg => console.log("[CampNav SW] registered:", reg.scope))
                     .catch(err => console.warn("[CampNav SW] registration failed:", err));

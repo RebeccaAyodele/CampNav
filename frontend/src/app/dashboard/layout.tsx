@@ -95,52 +95,57 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (!isAuthorized) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#071133] text-white">
-        <div className="h-10 w-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+      <div className="dash-shell flex h-screen items-center justify-center">
+        <div className="h-10 w-10 border-4 border-[var(--dashboard-accent)] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-slate-900 text-slate-100 font-sans antialiased">
+    <div className="dash-shell flex h-screen w-screen overflow-hidden font-sans antialiased">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/35 lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar navigation drawer */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-[#071133] border-r border-white/5 transition-transform duration-300 lg:static lg:translate-x-0 ${
+        className={`dash-sidebar fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r transition-transform duration-300 lg:static lg:translate-x-0 ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         {/* Sidebar Header / Brand */}
-        <div className="flex h-20 items-center justify-between px-6 border-b border-white/5 shrink-0">
-          <div className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-orange-400" />
-            <span className="font-extrabold text-lg tracking-wider bg-gradient-to-r from-orange-400 to-indigo-200 bg-clip-text text-transparent">
-              CampNav HQ
-            </span>
+        <div className="flex h-24 items-center justify-between px-5 border-b dash-divider shrink-0">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 items-center justify-center bg-[var(--dashboard-accent)] text-white">
+              <Shield className="h-5 w-5" />
+            </div>
+            <div>
+              <span className="block text-sm font-black uppercase leading-tight text-[var(--dashboard-accent-dark)]">
+                Command<br />Center
+              </span>
+              <span className="text-[10px] font-bold text-[var(--dashboard-muted)]">Lead Coordinator</span>
+            </div>
           </div>
           <button
             onClick={() => setIsSidebarOpen(false)}
-            className="rounded-lg p-1.5 hover:bg-white/10 lg:hidden text-white/50"
+            className="p-1.5 hover:bg-[var(--dashboard-panel-muted)] lg:hidden text-[var(--dashboard-muted)]"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* User Card */}
-        <div className="px-6 py-5 border-b border-white/5 shrink-0 flex items-center gap-3 bg-[#0a1847]/30">
-          <div className="h-10 w-10 rounded-full bg-orange-600/35 border border-orange-500/25 flex items-center justify-center font-extrabold text-orange-300">
+        <div className="px-5 py-4 border-b dash-divider shrink-0 flex items-center gap-3">
+          <div className="h-9 w-9 border border-[var(--dashboard-border-strong)] bg-[var(--dashboard-panel)] flex items-center justify-center font-extrabold text-[var(--dashboard-accent-dark)]">
             {adminName.charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-bold text-slate-200 truncate">{adminName}</p>
-            <p className="text-[10px] font-extrabold uppercase tracking-widest text-orange-400 mt-0.5">Control Center</p>
+            <p className="text-sm font-bold truncate">{adminName}</p>
+            <p className="dash-label mt-0.5">Control Center</p>
           </div>
         </div>
 
@@ -154,10 +159,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 key={item.href}
                 href={item.href}
                 onClick={() => setIsSidebarOpen(false)}
-                className={`flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-sm font-bold tracking-wide transition-all ${
+                className={`flex items-center gap-3 px-4 py-3 text-sm font-bold transition-colors ${
                   isActive
-                    ? "bg-orange-600 text-white shadow-lg shadow-orange-600/15"
-                    : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                    ? "bg-[var(--dashboard-active)] text-[var(--dashboard-text)]"
+                    : "text-[var(--dashboard-muted)] hover:bg-[var(--dashboard-panel)] hover:text-[var(--dashboard-text)]"
                 }`}
               >
                 <Icon className={`h-5 w-5 shrink-0 ${isActive ? "stroke-[2.5px]" : "stroke-[1.8px]"}`} />
@@ -168,16 +173,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </nav>
 
         {/* Sidebar Footer Info */}
-        <div className="p-4 border-t border-white/5 shrink-0 space-y-3 bg-[#0a1847]/10">
+        <div className="p-4 border-t dash-divider shrink-0 space-y-3">
           {/* WebSocket Status Indicator */}
-          <div className="flex items-center justify-between bg-[#071133] border border-white/5 p-3 rounded-xl">
+          <div className="dash-panel-muted flex items-center justify-between p-3">
             <div className="flex items-center gap-2">
-              <Radio className={`h-4.5 w-4.5 ${wsConnected ? "text-emerald-400 animate-pulse" : "text-rose-500"}`} />
-              <span className="text-xs font-bold text-slate-300">Logistics Link</span>
+              <Radio className={`h-4.5 w-4.5 ${wsConnected ? "text-[var(--dashboard-success)]" : "text-[var(--dashboard-alert)]"}`} />
+              <span className="text-xs font-bold">Logistics Link</span>
             </div>
             <span
-              className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded ${
-                wsConnected ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400"
+              className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 ${
+                wsConnected ? "bg-[color-mix(in_srgb,var(--dashboard-success)_14%,white)] text-[var(--dashboard-success)]" : "bg-[color-mix(in_srgb,var(--dashboard-alert)_12%,white)] text-[var(--dashboard-alert)]"
               }`}
             >
               {wsConnected ? t("connected") : t("disconnected")}
@@ -187,7 +192,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* Logout Action */}
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-white/10 hover:border-white/25 text-rose-400 hover:text-rose-300 text-sm font-bold tracking-wide transition-all active:scale-[0.98]"
+            className="dash-button-secondary w-full flex items-center justify-center gap-2 px-4 py-3 text-sm active:scale-[0.98]"
           >
             <LogOut className="h-4.5 w-4.5" />
             <span>{t("logout")}</span>
@@ -196,25 +201,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* Main content viewport */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-950 text-slate-200">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Mobile Header navbar */}
-        <header className="relative z-30 flex h-20 items-center justify-between border-b border-white/5 bg-[#071133] px-6 lg:hidden shrink-0">
+        <header className="dash-sidebar relative z-30 flex h-20 items-center justify-between border-b px-6 lg:hidden shrink-0">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="rounded-lg p-2 hover:bg-white/10 text-slate-300"
+              className="p-2 hover:bg-[var(--dashboard-panel-muted)] text-[var(--dashboard-text)]"
             >
               <Menu className="h-6 w-6" />
             </button>
             <div className="flex items-center gap-2">
-              <Shield className="h-5.5 w-5.5 text-orange-400" />
-              <span className="font-extrabold text-base tracking-wider bg-gradient-to-r from-orange-400 to-indigo-200 bg-clip-text text-transparent">
+              <Shield className="h-5.5 w-5.5 text-[var(--dashboard-accent)]" />
+              <span className="font-extrabold text-base tracking-wider text-[var(--dashboard-accent-dark)]">
                 CampNav HQ
               </span>
             </div>
           </div>
           
-          <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-ping" />
+          <div className="h-2.5 w-2.5 rounded-full bg-[var(--dashboard-success)]" />
         </header>
 
         {/* Content canvas */}

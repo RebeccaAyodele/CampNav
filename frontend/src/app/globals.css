@@ -208,7 +208,6 @@ body {
   }
 
   .dash-shell .animate-ping,
-  .dash-shell .animate-pulse,
   .dash-shell .animate-bounce {
     animation: none !important;
   }

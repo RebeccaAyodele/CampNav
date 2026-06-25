@@ -33,6 +33,13 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 const DEFAULT_CENTER: [number, number] = [3.4588, 6.8097];
 
+const SIM_DRIVERS = [
+  { id: "shuttle-1", name: "Ade", route: [[3.4564458, 6.8198983], [3.4564295, 6.8199064], [3.4571496, 6.8185982], [3.4571332, 6.8185576], [3.4571332, 6.8185901], [3.4574025, 6.8176721], [3.4573915, 6.8168145]], zone: "Zone A", label: "Main Gate -> Access Bank" },
+  { id: "shuttle-2", name: "Olumide", route: [[3.456378, 6.8199736], [3.4573852, 6.8176968], [3.4574709, 6.8170158], [3.4568388, 6.8148986], [3.4579853, 6.8144624], [3.4577508, 6.8125066], [3.4573048, 6.8112875], [3.4567644, 6.810407]], zone: "Zone B", label: "Main Gate -> Glory Arena" },
+  { id: "shuttle-3", name: "Chioma", route: [[3.4612929, 6.8103232], [3.4611512, 6.8098925], [3.4619833, 6.809374], [3.4616646, 6.8084687], [3.4612929, 6.8077831]], zone: "Zone C", label: "Bible College -> Market" },
+  { id: "shuttle-4", name: "Musa", route: [[3.4593595, 6.7628041], [3.4589156, 6.762744], [3.4589694, 6.7618959], [3.4687606, 6.7622632], [3.4688233, 6.7620483], [3.4691223, 6.76218], [3.469788, 6.7607643]], zone: "Zone D", label: "New Auditorium -> Simawa" }
+] as const;
+
 interface ShuttleData {
   shuttleId: string;
   driverName?: string;
@@ -93,19 +100,47 @@ export default function DashboardPage() {
       return;
     }
 
-    const simDrivers = [
-      { id: "shuttle-1", name: "Ade", route: [[3.4564458, 6.8198983], [3.4564295, 6.8199064], [3.4571496, 6.8185982], [3.4571332, 6.8185576], [3.4571332, 6.8185901], [3.4574025, 6.8176721], [3.4573915, 6.8168145]], zone: "Zone A" },
-      { id: "shuttle-2", name: "Olumide", route: [[3.456378, 6.8199736], [3.4573852, 6.8176968], [3.4574709, 6.8170158], [3.4568388, 6.8148986], [3.4579853, 6.8144624], [3.4577508, 6.8125066], [3.4573048, 6.8112875], [3.4567644, 6.810407]], zone: "Zone B" },
-      { id: "shuttle-3", name: "Chioma", route: [[3.4612929, 6.8103232], [3.4611512, 6.8098925], [3.4619833, 6.809374], [3.4616646, 6.8084687], [3.4612929, 6.8077831]], zone: "Zone C" },
-      { id: "shuttle-4", name: "Musa", route: [[3.4593595, 6.7628041], [3.4589156, 6.762744], [3.4589694, 6.7618959], [3.4687606, 6.7622632], [3.4688233, 6.7620483], [3.4691223, 6.76218], [3.469788, 6.7607643]], zone: "Zone D" }
-    ];
-
     shuttleSimIntervalRef.current = setInterval(() => {
-      simDrivers.forEach((drv) => {
+      SIM_DRIVERS.forEach((drv) => {
         setShuttleIndices((prev) => {
           const currentIndex = prev[drv.id] ?? 0;
           const nextIndex = (currentIndex + 1) % drv.route.length;
           const [lng, lat] = drv.route[nextIndex]!;
+          const passengerLoad = Math.floor(Math.random() * 15) + 3;
+          const checkin: ShuttleData = {
+            shuttleId: drv.id,
+            driverName: drv.name,
+            lat,
+            lng,
+            zone: drv.zone,
+            passengerLoad,
+            lastCheckin: new Date().toISOString(),
+          };
+
+          setShuttles((current) => {
+            const idx = current.findIndex((s) => s.shuttleId === checkin.shuttleId);
+            if (idx >= 0) {
+              const next = [...current];
+              next[idx] = checkin;
+              return next;
+            }
+            return [checkin, ...current];
+          });
+
+          setLogs((current) => [
+            {
+              type: "shuttle_checkin",
+              description: `${drv.id} simulated check-in at ${drv.zone} (${passengerLoad} pax)`,
+              timestamp: checkin.lastCheckin,
+            },
+            ...current.slice(0, 19),
+          ]);
+
+          setStats((current) => ({
+            ...current,
+            activeShuttles: Math.max(current.activeShuttles, SIM_DRIVERS.length),
+            totalCheckins: current.totalCheckins + 1,
+          }));
 
           // Fire real HTTP check-in posts to backend (which broadcasts via WebSocket)
           fetch(`${config.api.baseUrl}/api/shuttles/checkin`, {
@@ -119,7 +154,7 @@ export default function DashboardPage() {
               lat,
               lng,
               zone: drv.zone,
-              passengerLoad: Math.floor(Math.random() * 15) + 3,
+              passengerLoad,
             }),
           }).catch((err) => console.error("Telemetry Sim check-in failed:", err));
 
@@ -444,8 +479,8 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="dash-badge flex w-fit items-center gap-1 px-3.5 py-1.5">
-          <Radio className="h-4 w-4 text-[var(--dashboard-accent-dark)]" />
-          <span>LIVE TRACKING</span>
+          <Radio className={`h-4 w-4 text-[var(--dashboard-accent-dark)] ${isSimulatingShuttles ? "animate-pulse" : ""}`} />
+          <span>{isSimulatingShuttles ? "SIMULATION LIVE" : "LIVE TRACKING"}</span>
         </div>
       </div>
 
@@ -521,19 +556,14 @@ export default function DashboardPage() {
             </div>
             
             <div className="space-y-2 text-xs">
-              {[
-                { name: "Shuttle 1 (Ade)", route: "Main Gate -> Access Bank" },
-                { name: "Shuttle 2 (Olumide)", route: "Main Gate -> Glory Arena" },
-                { name: "Shuttle 3 (Chioma)", route: "Bible College -> Market" },
-                { name: "Shuttle 4 (Musa)", route: "New Auditorium -> Simawa" }
-              ].map((sh, idx) => (
-                <div key={idx} className="dash-panel-muted flex items-center justify-between p-2">
+              {SIM_DRIVERS.map((sh) => (
+                <div key={sh.id} className="dash-panel-muted flex items-center justify-between p-2">
                   <div className="flex items-center gap-2">
-                    <span className={`h-2 w-2 ${isSimulatingShuttles ? "bg-[var(--dashboard-success)]" : "bg-[var(--dashboard-soft)]"}`} />
-                    <span className="font-bold text-[var(--dashboard-text)]">{sh.name}</span>
+                    <span className={`h-2.5 w-2.5 rounded-full ${isSimulatingShuttles ? "animate-pulse bg-[var(--dashboard-success)]" : "bg-[var(--dashboard-soft)]"}`} />
+                    <span className="font-bold text-[var(--dashboard-text)]">Shuttle {sh.id.split("-")[1]} ({sh.name})</span>
                   </div>
                   <span className="max-w-[130px] truncate text-[10px] font-semibold text-[var(--dashboard-muted)]">
-                    {sh.route}
+                    {sh.label}
                   </span>
                 </div>
               ))}

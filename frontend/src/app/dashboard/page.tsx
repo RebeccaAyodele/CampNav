@@ -344,8 +344,8 @@ export default function DashboardPage() {
         existing.setLngLat([lng, lat]);
       } else {
         const el = document.createElement("div");
-        el.className = "flex items-center justify-center h-8 w-8 bg-[var(--dashboard-accent)] text-white border-2 border-white text-[10px] font-black cursor-pointer";
-        el.innerText = "BUS";
+        el.className = "flex items-center justify-center h-8 w-8 bg-[var(--dashboard-accent)] text-white border-2 border-white text-lg leading-none cursor-pointer shadow-sm";
+        el.innerText = "🚌";
 
         const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`
           <div class="text-slate-800 p-1 text-xs">
@@ -392,7 +392,7 @@ export default function DashboardPage() {
         existing.setLngLat([lng, lat]);
       } else {
         const el = document.createElement("div");
-        el.className = "flex items-center justify-center h-8 w-8 bg-[var(--dashboard-alert)] text-white border-2 border-white text-sm font-black cursor-pointer";
+        el.className = "flex items-center justify-center h-8 w-8 bg-[var(--dashboard-alert)] text-white border-2 border-white text-sm font-black cursor-pointer shadow-sm";
         el.innerText = "!";
 
         const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`
@@ -559,7 +559,9 @@ export default function DashboardPage() {
               {SIM_DRIVERS.map((sh) => (
                 <div key={sh.id} className="dash-panel-muted flex items-center justify-between p-2">
                   <div className="flex items-center gap-2">
-                    <span className={`h-2.5 w-2.5 rounded-full ${isSimulatingShuttles ? "animate-pulse bg-[var(--dashboard-success)]" : "bg-[var(--dashboard-soft)]"}`} />
+                  <span className={`flex h-6 w-6 items-center justify-center ${isSimulatingShuttles ? "text-[var(--dashboard-success)]" : "text-[var(--dashboard-soft)]"}`}>
+                    <Bus className="h-4 w-4" />
+                  </span>
                     <span className="font-bold text-[var(--dashboard-text)]">Shuttle {sh.id.split("-")[1]} ({sh.name})</span>
                   </div>
                   <span className="max-w-[130px] truncate text-[10px] font-semibold text-[var(--dashboard-muted)]">
@@ -584,7 +586,7 @@ export default function DashboardPage() {
                   return (
                     <div key={idx} className="dash-panel-muted flex items-start gap-3 p-3 text-xs">
                       <span className={`shrink-0 font-black ${isCheckin ? "text-[var(--dashboard-accent-dark)]" : "text-[var(--dashboard-alert)]"}`}>
-                        {isCheckin ? "BUS" : "ALERT"}
+                        {isCheckin ? "🚌" : "👤"}
                       </span>
                       <div className="min-w-0">
                         <p className="break-words font-bold leading-relaxed text-[var(--dashboard-text)]">{log.description}</p>

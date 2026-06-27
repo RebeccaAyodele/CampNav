@@ -152,46 +152,47 @@ export default function DriverPage() {
   };
 
   return (
-    <div className="relative min-h-full flex items-center justify-center p-4 text-white">
+    <div className="relative min-h-full flex items-center justify-center p-4 text-slate-800 bg-white">
       {/* Background decoration elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-[0.05]">
         <div className="absolute -top-40 -left-40 h-96 w-96 rounded-full bg-orange-600 blur-3xl" />
         <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-orange-600 blur-3xl" />
       </div>
 
-      <div className="relative w-full max-w-md bg-[#0a1847]/75 backdrop-blur-xl border border-orange-500/30 rounded-3xl p-8 shadow-2xl space-y-6">
+      <div className="relative w-full max-w-md bg-slate-50/70 border border-slate-200/80 rounded-3xl p-8 shadow-sm space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex p-3 bg-orange-500/10 border border-orange-500/25 rounded-2xl text-orange-400 mb-2">
+          <div className="inline-flex p-3 bg-orange-50 border border-orange-200/80 rounded-2xl text-orange-600 mb-2">
             <Bus className="h-8 w-8" />
           </div>
-          <h1 className="text-2xl font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-indigo-200">
+          <h1 className="text-2xl font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-indigo-600">
             {t("driverCheckin")}
           </h1>
-          <p className="text-xs text-white/50 font-bold uppercase tracking-wider">
+          <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">
             CampNav Driver Portal
           </p>
         </div>
 
         {/* Success Alert */}
         {submitStatus === "success" && (
-          <div className="bg-emerald-500/20 border border-emerald-500/30 text-emerald-200 p-4 rounded-xl flex items-start gap-3 shadow-md animate-in fade-in duration-300">
-            <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl flex items-start gap-3 shadow-sm animate-in fade-in duration-300">
+            <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
             <div>
               <h4 className="font-extrabold text-sm">{t("checkinSuccess")}</h4>
-              <p className="text-xs text-emerald-300/80 mt-0.5">
+              <p className="text-xs text-emerald-700/90 mt-0.5">
                 Check-in broadcasted to logistics center.
               </p>
             </div>
           </div>
         )}
 
+        {/* Queued Alert */}
         {submitStatus === "queued" && (
-          <div className="bg-amber-500/20 border border-amber-500/30 text-amber-200 p-4 rounded-xl flex items-start gap-3 shadow-md animate-in fade-in duration-300">
-            <CheckCircle2 className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+          <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl flex items-start gap-3 shadow-sm animate-in fade-in duration-300">
+            <CheckCircle2 className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
             <div>
               <h4 className="font-extrabold text-sm">{t("checkinQueued")}</h4>
-              <p className="text-xs text-amber-300/80 mt-0.5">
+              <p className="text-xs text-amber-700/90 mt-0.5">
                 Saved locally. Auto sync when connection is restored.
               </p>
             </div>
@@ -202,18 +203,18 @@ export default function DriverPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Shuttle ID */}
           <div>
-            <label className="block text-xs font-bold text-orange-200 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">
               {t("vehicleId")} *
             </label>
             <div className="relative">
-              <Bus className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/30" />
+              <Bus className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
               <input
                 type="text"
                 name="shuttleId"
                 value={formData.shuttleId}
                 onChange={handleInputChange}
                 placeholder={t("vehicleIdPlaceholder")}
-                className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white font-bold placeholder-white/20 focus:outline-none focus:border-orange-400 text-lg uppercase"
+                className="w-full bg-white border border-slate-200 rounded-xl pl-12 pr-4 py-3 text-slate-800 font-bold placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 text-lg uppercase"
                 required
               />
             </div>
@@ -221,18 +222,18 @@ export default function DriverPage() {
 
           {/* Driver Name */}
           <div>
-            <label className="block text-xs font-bold text-orange-200 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">
               {t("driverName")}
             </label>
             <div className="relative">
-              <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/30" />
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
               <input
                 type="text"
                 name="driverName"
                 value={formData.driverName}
                 onChange={handleInputChange}
                 placeholder={t("driverNamePlaceholder")}
-                className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white font-semibold placeholder-white/20 focus:outline-none focus:border-orange-400"
+                className="w-full bg-white border border-slate-200 rounded-xl pl-12 pr-4 py-3 text-slate-800 font-semibold placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
               />
             </div>
           </div>
@@ -240,31 +241,31 @@ export default function DriverPage() {
           {/* Zone and Passenger Load Row */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-orange-200 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">
                 {t("zone")}
               </label>
               <div className="relative">
-                <Map className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/30" />
+                <Map className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                 <input
                   type="text"
                   name="zone"
                   value={formData.zone}
                   onChange={handleInputChange}
                   placeholder={t("zonePlaceholder")}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white font-semibold placeholder-white/20 focus:outline-none focus:border-orange-400 uppercase"
+                  className="w-full bg-white border border-slate-200 rounded-xl pl-12 pr-4 py-3 text-slate-800 font-semibold placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 uppercase"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-orange-200 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">
                 {t("passengerLoad")}
               </label>
-              <div className="flex bg-white/5 border border-white/10 rounded-xl overflow-hidden h-[46px] items-stretch">
+              <div className="flex bg-white border border-slate-200 rounded-xl overflow-hidden h-[46px] items-stretch">
                 <button
                   type="button"
                   onClick={() => incrementLoad(-5)}
-                  className="px-3 bg-white/5 font-bold hover:bg-white/10 text-white text-lg active:scale-95 transition-all focus:outline-none"
+                  className="px-3 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold text-lg active:scale-95 transition-all focus:outline-none"
                 >
                   -
                 </button>
@@ -273,12 +274,12 @@ export default function DriverPage() {
                   name="passengerLoad"
                   value={formData.passengerLoad || ""}
                   onChange={handleInputChange}
-                  className="w-full bg-transparent border-0 text-center text-white font-bold focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-lg"
+                  className="w-full bg-transparent border-0 text-center text-slate-800 font-bold focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-lg"
                 />
                 <button
                   type="button"
                   onClick={() => incrementLoad(5)}
-                  className="px-3 bg-white/5 font-bold hover:bg-white/10 text-white text-lg active:scale-95 transition-all focus:outline-none"
+                  className="px-3 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold text-lg active:scale-95 transition-all focus:outline-none"
                 >
                   +
                 </button>
@@ -287,23 +288,23 @@ export default function DriverPage() {
           </div>
 
           {/* Location status coordinates */}
-          <div className="bg-white/5 border border-white/10 rounded-xl p-3.5 flex items-center justify-between text-xs">
-            <span className="font-bold text-orange-200 uppercase tracking-wider flex items-center gap-1.5">
-              <MapPin className="h-4 w-4 text-orange-400" />
+          <div className="bg-white border border-slate-200 rounded-xl p-3.5 flex items-center justify-between text-xs">
+            <span className="font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
+              <MapPin className="h-4 w-4 text-orange-600" />
               <span>Location</span>
             </span>
             <div className="flex items-center gap-2">
               {lat !== null && lng !== null ? (
-                <span className="font-mono text-emerald-400 font-bold">
+                <span className="font-mono text-emerald-700 font-bold">
                   {lat.toFixed(5)}, {lng.toFixed(5)}
                 </span>
               ) : (
-                <span className="text-white/40">Tracking location...</span>
+                <span className="text-slate-400">Tracking location...</span>
               )}
               <button
                 type="button"
                 onClick={trackLocation}
-                className="p-1 rounded bg-white/10 hover:bg-white/20 active:scale-95 text-orange-200 hover:text-white transition-all"
+                className="p-1 rounded bg-slate-100 hover:bg-slate-250 active:scale-95 text-slate-600 hover:text-slate-800 transition-all"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${isLocating ? "animate-spin" : ""}`} />
               </button>
@@ -314,7 +315,7 @@ export default function DriverPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full flex items-center justify-center gap-2 py-4 bg-orange-500 hover:bg-orange-600 disabled:bg-slate-700 text-white rounded-xl font-bold shadow-lg shadow-orange-500/20 active:scale-[0.99] transition-all text-lg"
+            className="w-full flex items-center justify-center gap-2 py-4 bg-orange-600 hover:bg-orange-700 disabled:bg-slate-300 text-white rounded-xl font-bold shadow-lg shadow-orange-600/10 active:scale-[0.99] transition-all text-lg"
           >
             {isSubmitting ? (
               <>
@@ -328,13 +329,13 @@ export default function DriverPage() {
         </form>
 
         {/* Footer Info */}
-        <div className="text-center space-y-3 pt-6 border-t border-white/5 mt-6">
+        <div className="text-center space-y-3 pt-6 border-t border-slate-200 mt-6">
           {lastCheckinTime && (
-            <p className="text-sm font-bold text-orange-300">
-              {t("lastCheckin")}: <span className="text-white">{lastCheckinTime}</span>
+            <p className="text-sm font-bold text-slate-500">
+              {t("lastCheckin")}: <span className="text-slate-800 font-extrabold">{lastCheckinTime}</span>
             </p>
           )}
-          <div className="text-[10px] text-white/45 font-bold uppercase tracking-widest leading-relaxed">
+          <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
             <p>{t("checkInWhenStop")}</p>
             <p>{t("locationRecorded")}</p>
           </div>

@@ -11,7 +11,8 @@ const lostPersonSchema = z.object({
   lastSeenLocation: z.string().min(1).optional(),
   lat: z.number().optional(),
   lng: z.number().optional(),
-  source: z.enum(["app", "ussd", "dashboard"]).default("app")
+  source: z.enum(["app", "ussd", "dashboard"]).default("app"),
+  imageUrl: z.string().optional()
 });
 
 const statusSchema = z.object({

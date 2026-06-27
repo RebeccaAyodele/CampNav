@@ -71,6 +71,7 @@ export type LostPersonReportRow = {
   lng: number | null;
   source: LostPersonSource;
   status: LostPersonStatus;
+  image_url: string | null;
   resolved_at: Date | null;
   created_at: Date;
   updated_at: Date;

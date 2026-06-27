@@ -88,18 +88,25 @@ function bearingToDirection(bearing: number): string {
 }
 
 /** Determine if a POI is to the left or right of the walking direction */
-function getRelativePosition(
-  from: [number, number],
-  to: [number, number],
-  poi: [number, number]
-): "left" | "right" {
-  // Cross product of direction vector and POI vector
-  const dx = to[0] - from[0];
-  const dy = to[1] - from[1];
-  const px = poi[0] - from[0];
-  const py = poi[1] - from[1];
-  const cross = dx * py - dy * px;
-  return cross > 0 ? "left" : "right";
+/** Detect turn direction between segment bearings */
+function detectTurn(prevBearing: number, currBearing: number): string | null {
+  let diff = currBearing - prevBearing;
+  if (diff > 180) diff -= 360;
+  if (diff < -180) diff += 360;
+
+  if (Math.abs(diff) < 30) return null; // straight
+  return diff > 0 ? "right" : "left";
+}
+
+/** Determine if a POI is to the left or right of the path */
+function getSideOfPath(pathBearing: number, bearingToPoi: number): "left" | "right" | "near" {
+  let diff = bearingToPoi - pathBearing;
+  while (diff > 180) diff -= 360;
+  while (diff < -180) diff += 360;
+
+  if (diff > 20 && diff < 160) return "right";
+  if (diff < -20 && diff > -160) return "left";
+  return "near";
 }
 
 /** Calculate total distance along a coordinate array */
@@ -113,58 +120,72 @@ function totalPathDistance(coords: [number, number][]): number {
 
 /**
  * Find nearby landmarks along the route and annotate steps.
- * Checks each segment for POIs within LANDMARK_RADIUS meters.
+ * Checks each segment for POIs within 45 meters from segment start.
  */
 function annotateLandmarks(
   coords: [number, number][],
-  originId?: string,
-  destId?: string
+  originName?: string,
+  destName?: string
 ): { instruction: string; distance_meters: number }[] {
+  if (coords.length < 2) return [];
+
   const pois = getPOIs();
   const steps: { instruction: string; distance_meters: number }[] = [];
+  let prevBearing: number | null = null;
+
+  const cleanStartName = (originName ?? "").toLowerCase().trim();
+  const cleanEndName = (destName ?? "").toLowerCase().trim();
 
   for (let i = 0; i < coords.length - 1; i++) {
-    const from = coords[i];
-    const to = coords[i + 1];
+    const from = coords[i]!;
+    const to = coords[i + 1]!;
     const segDist = Math.round(haversineDistance(from, to));
     const bearing = calculateBearing(from, to);
     const direction = bearingToDirection(bearing);
 
-    let instruction = "";
-    if (i === 0) {
-      instruction = `Head ${direction} for ${segDist}m`;
-    } else {
-      instruction = `Continue ${direction} for ${segDist}m`;
-    }
-
-    // Check midpoint of segment for nearby landmarks
-    const midLng = (from[0] + to[0]) / 2;
-    const midLat = (from[1] + to[1]) / 2;
-    const midPoint: [number, number] = [midLng, midLat];
-
-    const nearbyLandmarks: { name: string; side: "left" | "right" }[] = [];
-
+    // Look for a nearby landmark along this step
+    let landmarkText = "";
     for (const poi of pois) {
-      // Skip origin and destination
-      if (poi.properties.id === originId || poi.properties.id === destId) continue;
+      const cleanPoiName = poi.properties.name.toLowerCase().trim();
+      // Skip start and end POIs
+      if (
+        (cleanStartName && (cleanPoiName.includes(cleanStartName) || cleanStartName.includes(cleanPoiName))) ||
+        (cleanEndName && (cleanPoiName.includes(cleanEndName) || cleanEndName.includes(cleanPoiName)))
+      ) {
+        continue;
+      }
 
       const poiCoord = poi.geometry.coordinates;
-      const dist = haversineDistance(midPoint, poiCoord);
-
-      if (dist <= LANDMARK_RADIUS) {
-        const side = getRelativePosition(from, to, poiCoord);
-        nearbyLandmarks.push({ name: poi.properties.name, side });
+      const distanceToPoi = haversineDistance(from, poiCoord);
+      if (distanceToPoi <= 45) { // Within 45 meters
+        const poiBearing = calculateBearing(from, poiCoord);
+        const side = getSideOfPath(bearing, poiBearing);
+        
+        if (side === "left") {
+          landmarkText = ` (passing ${poi.properties.name} on your left)`;
+        } else if (side === "right") {
+          landmarkText = ` (passing ${poi.properties.name} on your right)`;
+        } else {
+          landmarkText = ` (passing near ${poi.properties.name})`;
+        }
+        break; // Only mention one landmark per segment to avoid cluttering
       }
     }
 
-    if (nearbyLandmarks.length > 0) {
-      const annotations = nearbyLandmarks
-        .map((lm) => `passing ${lm.name} on your ${lm.side}`)
-        .join(", ");
-      instruction += ` (${annotations})`;
+    let instruction = "";
+    if (prevBearing !== null) {
+      const turn = detectTurn(prevBearing, bearing);
+      if (turn) {
+        instruction = `Turn ${turn} and walk ${segDist}m heading ${direction}${landmarkText}`;
+      } else {
+        instruction = `Continue straight for ${segDist}m heading ${direction}${landmarkText}`;
+      }
+    } else {
+      instruction = `Head ${direction} for ${segDist}m${landmarkText}`;
     }
 
     steps.push({ instruction, distance_meters: segDist });
+    prevBearing = bearing;
   }
 
   return steps;
@@ -199,7 +220,7 @@ export function findOfflineRoute(
     if (startDist <= MATCH_TOLERANCE && endDist <= MATCH_TOLERANCE) {
       const dist = Math.round(totalPathDistance(coords));
       const waypoints = coords.map(([lng, lat]) => ({ lat, lng }));
-      const steps = annotateLandmarks(coords);
+      const steps = annotateLandmarks(coords, originName, destName);
       return {
         routeId: route.properties.id || "pre-traced",
         mode: "walking",
@@ -219,7 +240,7 @@ export function findOfflineRoute(
       const reversed = [...coords].reverse();
       const dist = Math.round(totalPathDistance(reversed));
       const waypoints = reversed.map(([lng, lat]) => ({ lat, lng }));
-      const steps = annotateLandmarks(reversed);
+      const steps = annotateLandmarks(reversed, destName, originName);
       return {
         routeId: route.properties.id || "pre-traced-reversed",
         mode: "walking",
@@ -242,7 +263,7 @@ export function findOfflineRoute(
       ) {
         const dist = Math.round(totalPathDistance(coords));
         const waypoints = coords.map(([lng, lat]) => ({ lat, lng }));
-        const steps = annotateLandmarks(coords);
+        const steps = annotateLandmarks(coords, originName, destName);
         return {
           routeId: route.properties.id || "pre-traced-name",
           mode: "walking",
@@ -262,7 +283,7 @@ export function findOfflineRoute(
         const reversed = [...coords].reverse();
         const dist = Math.round(totalPathDistance(reversed));
         const waypoints = reversed.map(([lng, lat]) => ({ lat, lng }));
-        const steps = annotateLandmarks(reversed);
+        const steps = annotateLandmarks(reversed, destName, originName);
         return {
           routeId: route.properties.id || "pre-traced-name-reversed",
           mode: "walking",
@@ -277,12 +298,14 @@ export function findOfflineRoute(
   }
 
   // Graph-based offline fallback
-  return generateGraphFallback(origin, destination);
+  return generateGraphFallback(origin, destination, originName, destName);
 }
 
 function generateGraphFallback(
   origin: { lat: number; lng: number },
-  destination: { lat: number; lng: number }
+  destination: { lat: number; lng: number },
+  originName?: string,
+  destName?: string
 ): RouteResult {
   try {
     const { pf, multiLine } = getPathFinder();
@@ -302,7 +325,7 @@ function generateGraphFallback(
       const distanceMeters = Math.round(totalPathDistance(coords));
       
       const waypoints = coords.map(([lng, lat]) => ({ lat, lng }));
-      const steps = annotateLandmarks(coords);
+      const steps = annotateLandmarks(coords, originName, destName);
       
       // If annotateLandmarks produces no steps, add a default one
       if (steps.length === 0) {
@@ -327,12 +350,14 @@ function generateGraphFallback(
   }
 
   // Absolute worst-case scenario: straight-line fallback
-  return generateStraightLineFallback(origin, destination);
+  return generateStraightLineFallback(origin, destination, originName, destName);
 }
 
 function generateStraightLineFallback(
   origin: { lat: number; lng: number },
-  destination: { lat: number; lng: number }
+  destination: { lat: number; lng: number },
+  originName?: string,
+  destName?: string
 ): RouteResult {
   const originCoord: [number, number] = [origin.lng, origin.lat];
   const destCoord: [number, number] = [destination.lng, destination.lat];
@@ -340,7 +365,7 @@ function generateStraightLineFallback(
   const bearing = calculateBearing(originCoord, destCoord);
   const direction = bearingToDirection(bearing);
   const coords: [number, number][] = [originCoord, destCoord];
-  const steps = annotateLandmarks(coords);
+  const steps = annotateLandmarks(coords, originName, destName);
 
   if (steps.length === 0) {
     steps.push({

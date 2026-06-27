@@ -14,6 +14,7 @@ interface CreateReportInput {
   lat?: number;
   lng?: number;
   source?: LostPersonSource;
+  imageUrl?: string;
 }
 
 interface ListFilters {
@@ -24,8 +25,8 @@ interface ListFilters {
 
 export async function createReport(data: CreateReportInput) {
   const result = await query<LostPersonReportRow>(
-    `INSERT INTO lost_person_reports (name, description, reporter_name, reporter_phone, last_seen_location, lat, lng, source)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    `INSERT INTO lost_person_reports (name, description, reporter_name, reporter_phone, last_seen_location, lat, lng, source, image_url)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
      RETURNING *`,
     [
       data.name ?? null,
@@ -35,7 +36,8 @@ export async function createReport(data: CreateReportInput) {
       data.lastSeenLocation ?? null,
       data.lat ?? null,
       data.lng ?? null,
-      data.source ?? "app"
+      data.source ?? "app",
+      data.imageUrl ?? null
     ]
   );
 
@@ -58,6 +60,7 @@ export async function createReport(data: CreateReportInput) {
     lng: row.lng,
     source: row.source,
     status: row.status,
+    imageUrl: row.image_url,
     createdAt: row.created_at.toISOString()
   };
 
@@ -105,6 +108,7 @@ export async function listReports(filters: ListFilters = {}) {
     lng: row.lng,
     source: row.source,
     status: row.status,
+    imageUrl: row.image_url,
     resolvedAt: row.resolved_at?.toISOString() ?? null,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString()

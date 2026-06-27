@@ -60,6 +60,7 @@ interface LostPersonReport {
   lat?: number;
   lng?: number;
   status: "open" | "in_progress" | "resolved";
+  imageUrl?: string;
   createdAt: string;
 }
 
@@ -422,7 +423,7 @@ export default function DashboardPage() {
     });
 
     activeLps.forEach((lp) => {
-      const { id, lat, lng, description, name, lastSeenLocation } = lp;
+      const { id, lat, lng, description, name, lastSeenLocation, imageUrl } = lp;
       if (!lat || !lng) return;
 
       const existing = lostPersonMarkersRef.current[id];
@@ -439,6 +440,7 @@ export default function DashboardPage() {
             <h4 class="font-bold text-sm text-rose-600">Lost Person: ${name || "Unknown"}</h4>
             <p class="mt-1 font-semibold">${description}</p>
             <p class="mt-1"><strong>Last Seen:</strong> ${lastSeenLocation || "N/A"}</p>
+            ${imageUrl ? `<div class="mt-2 rounded overflow-hidden max-h-24"><img src="${imageUrl}" class="object-cover h-24 w-full" /></div>` : ""}
           </div>
         `);
 

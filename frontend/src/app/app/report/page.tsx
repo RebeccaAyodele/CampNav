@@ -9,7 +9,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, MapPin, RefreshCw, Send, CheckCircle2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, MapPin, RefreshCw, Send, CheckCircle2, AlertTriangle, Camera, X } from "lucide-react";
 
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { apiClient } from "@/lib/api";
@@ -23,6 +23,7 @@ interface ReportFormData {
   lastSeenLocation: string;
   lat: number | null;
   lng: number | null;
+  imageUrl: string;
 }
 
 export default function LostPersonReportPage() {
@@ -38,6 +39,7 @@ export default function LostPersonReportPage() {
     lastSeenLocation: "",
     lat: null,
     lng: null,
+    imageUrl: "",
   });
 
   const [isLocating, setIsLocating] = useState(false);
@@ -95,6 +97,7 @@ export default function LostPersonReportPage() {
       lat: formData.lat || undefined,
       lng: formData.lng || undefined,
       source: "app",
+      imageUrl: formData.imageUrl || undefined,
     };
 
     if (mode === "online") {
@@ -136,7 +139,28 @@ export default function LostPersonReportPage() {
       lastSeenLocation: "",
       lat: null,
       lng: null,
+      imageUrl: "",
     });
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Image is too large. Please select an image under 2MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData((prev) => ({ ...prev, imageUrl: reader.result as string }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeImage = () => {
+    setFormData((prev) => ({ ...prev, imageUrl: "" }));
   };
 
   return (
@@ -240,6 +264,43 @@ export default function LostPersonReportPage() {
               placeholder={t("lastSeenLocationPlaceholder")}
               className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#ff6b00]/20 text-slate-800 font-medium"
             />
+          </div>
+
+          {/* Photo upload (Optional) */}
+          <div>
+            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">
+              Photo (Optional)
+            </label>
+            {formData.imageUrl ? (
+              <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-50 p-2 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={formData.imageUrl}
+                    alt="Preview"
+                    className="h-12 w-12 rounded-lg object-cover border border-slate-200"
+                  />
+                  <span className="text-xs text-slate-500 font-medium">Photo attached</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={removeImage}
+                  className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex items-center justify-center gap-2 w-full rounded-xl border border-dashed border-slate-300 hover:border-[#ff6b00] bg-slate-50 hover:bg-orange-50/20 px-4 py-4 cursor-pointer text-sm text-slate-600 transition-all font-semibold active:scale-[0.99]">
+                <Camera className="h-5 w-5 text-slate-400" />
+                <span>Upload Photo</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+              </label>
+            )}
           </div>
 
           {/* Coordinates (lat/lng) capture */}

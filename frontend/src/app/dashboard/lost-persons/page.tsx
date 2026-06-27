@@ -24,6 +24,7 @@ interface LostPersonReport {
   lng?: number;
   source: "app" | "ussd" | "dashboard";
   status: "open" | "in_progress" | "resolved";
+  imageUrl?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -236,6 +237,15 @@ export default function LostPersonsPage() {
                 <p className="text-sm text-slate-200 font-semibold leading-relaxed">
                   {report.description}
                 </p>
+                {report.imageUrl && (
+                  <div className="mt-3 relative rounded-xl overflow-hidden border border-white/10 max-h-48 flex items-center justify-center bg-black/20">
+                    <img
+                      src={report.imageUrl}
+                      alt={report.name || "Lost person"}
+                      className="object-contain max-h-48 w-full"
+                    />
+                  </div>
+                )}
               </div>
 
               <hr className="border-white/5" />
